@@ -1,0 +1,89 @@
+/* You can add global styles to this file, and also import other style files */
+body {
+    font-family: Lato;
+    font-size: 12pt;
+    color: #1d1d1d;
+}
+
+input {
+    font-family: Lato;
+    font-size: 12pt;
+    color: #1d1d1d;
+}
+
+a {
+    color: #1d1d1d;
+}
+
+.header {
+    height: 100px;
+}
+
+.currency {
+    text-align: right;
+}
+.name {
+    overflow: hidden;
+    height: 19px;
+}
+.center {
+    text-align: center;
+}
+.no-top-margin {
+    margin-top: 0;
+}
+.negative {
+    color: red;
+    font-weight: bold;
+}
+
+.transactions input {
+    width: 100%;
+    font-family: Lato;
+    font-size: 12pt;
+    color: #1d1d1d;
+}
+input.error {
+    background-color: red;
+}
+a.logout-link {
+    cursor: pointer;
+}
+
+.console_container {
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    font-family: monospace;
+    font-size: 12pt;
+}
+
+.console {
+    border: none;
+    outline: none;
+    background-color: black;
+    color: white;
+    font-family: monospace;
+    font-size: 12pt;
+}
+
+.niceInput {
+    border-width: 0px;
+    padding: 0px;
+}
+
+.button {
+    text-align: center;
+}
+
+.transaction {
+    border-top-style: solid;
+    border-top-width: 1px;
+
+}
+
+.transaction:last-child {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+}
