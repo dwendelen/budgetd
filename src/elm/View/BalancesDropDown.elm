@@ -21,36 +21,72 @@ type alias OnSelection msg =
 
 renderBalancesDropdown : BalanceList -> OnSelection msg -> BalancesDropdown msg
 renderBalancesDropdown balances onSelection selectedRef =
-    select [ class "grid_4 niceInput", onInput (onSelection << stringToBalanceRef) ] (renderBalancesDropdownOptions balances (getBalanceId selectedRef))
+    select [ class "grid_4 niceInput", onInput (onSelection << stringToBalanceRef) ] (renderBalancesDropdownOptions balances selectedRef)
 
 
-renderBalancesDropdownOptions : BalanceList -> BalanceId -> List (Html msg)
-renderBalancesDropdownOptions balances selectedId =
-    (renderAccountOptions balances.accounts selectedId) ++ (renderBucketOptions balances.buckets selectedId)
+renderBalancesDropdownOptions : BalanceList -> BalanceRef -> List (Html msg)
+renderBalancesDropdownOptions balances selectedRef =
+    let
+        limbo =
+            renderLimboOption selectedRef
+
+        accounts =
+            renderAccountOptions balances.accounts selectedRef
+
+        buffer =
+            renderBufferOption selectedRef
+
+        buckets =
+            renderBucketOptions balances.buckets selectedRef
+    in
+        [ limbo ] ++ accounts ++ [ buffer ] ++ buckets
 
 
-renderAccountOptions : List Account -> BalanceId -> List (Html msg)
-renderAccountOptions accounts selectedId =
-    List.map (renderAccountOption selectedId) accounts
+renderLimboOption : BalanceRef -> Html msg
+renderLimboOption selectedRef =
+    option [ value <| "limbo", selected (NoBalanceRef == selectedRef) ] [ text "Limbo" ]
 
 
-renderBucketOptions : List Bucket -> BalanceId -> List (Html msg)
-renderBucketOptions buckets selectedId =
-    List.map (renderBucketOption selectedId) buckets
+renderAccountOptions : List Account -> BalanceRef -> List (Html msg)
+renderAccountOptions accounts selectedRef =
+    List.map (renderAccountOption selectedRef) accounts
 
 
-renderAccountOption : BalanceId -> Account -> Html msg
-renderAccountOption selectedId account =
-    option [ value <| "a" ++ toString account.id, selected (account.id == selectedId) ] [ text account.name ]
+renderAccountOption : BalanceRef -> Account -> Html msg
+renderAccountOption selectedRef account =
+    option [ value <| "a" ++ toString account.id, selected (AccountRef account.id == selectedRef) ] [ text account.name ]
 
 
-renderBucketOption : BalanceId -> Bucket -> Html msg
-renderBucketOption selectedId bucket =
-    option [ value <| "b" ++ toString bucket.id, selected (bucket.id == selectedId) ] [ text bucket.name ]
+renderBufferOption : BalanceRef -> Html msg
+renderBufferOption selectedRef =
+    option [ value <| "buffer", selected (BufferRef == selectedRef) ] [ text "Buffer" ]
+
+
+renderBucketOptions : List Bucket -> BalanceRef -> List (Html msg)
+renderBucketOptions buckets selectedRef =
+    List.map (renderBucketOption selectedRef) buckets
+
+
+renderBucketOption : BalanceRef -> Bucket -> Html msg
+renderBucketOption selectedRef bucket =
+    option [ value <| "b" ++ toString bucket.id, selected (BucketRef bucket.id == selectedRef) ] [ text bucket.name ]
 
 
 stringToBalanceRef : String -> BalanceRef
 stringToBalanceRef input =
+    case input of
+        "buffer" ->
+            BufferRef
+
+        "limbo" ->
+            NoBalanceRef
+
+        _ ->
+            accountOrBucketToBalanceRef input
+
+
+accountOrBucketToBalanceRef : String -> BalanceRef
+accountOrBucketToBalanceRef input =
     case uncons input of
         Just ( 'a', number ) ->
             AccountRef (stringToBalanceId number)
@@ -62,7 +98,7 @@ stringToBalanceRef input =
             Debug.crash "Could not map string to balance ref because the format is wrong"
 
 
-stringToBalanceId : String -> BalanceId
+stringToBalanceId : String -> Int
 stringToBalanceId input =
     case String.toInt input of
         Ok balanceId ->

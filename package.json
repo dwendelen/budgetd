@@ -16,7 +16,7 @@
   },
   "scripts": {
     "build": "webpack --mode=development",
-    "start": "webpack-dev-server"
+    "start": "webpack-dev-server --mode=development"
   },
   "author": "",
   "license": ""

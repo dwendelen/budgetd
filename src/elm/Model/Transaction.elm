@@ -4,6 +4,7 @@ module Model.Transaction
         , SubTransactionId
         , Date
         , Comment
+        , Amount
         , Transaction
         , TransactionId
         , TransactionList
@@ -14,12 +15,13 @@ module Model.Transaction
         , updateDate
         , updateComment
         , updateBalance
+        , updateAmount
         , deleteSubTransaction
         , duplicateSubTransaction
-        , getLimbo
+        , createNewSubTransaction
         )
 
-import Model.Balance exposing (BalanceRef(AccountRef, BucketRef))
+import Model.Balance exposing (BalanceRef(..))
 
 
 type alias TransactionList =
@@ -99,8 +101,8 @@ newSubTransaction idParent =
     { id = 0
     , date = "2018-01-26"
     , balanceRef = idParent
-    , comment = "Kei veel zever"
-    , amount = 1500.0
+    , comment = ""
+    , amount = 0
     }
 
 
@@ -162,6 +164,11 @@ updateBalance newBalanceRef subTransaction =
     Just { subTransaction | balanceRef = newBalanceRef }
 
 
+updateAmount : Amount -> SubTransactionTransformer
+updateAmount newAmount subTransaction =
+    Just { subTransaction | amount = newAmount }
+
+
 deleteSubTransaction : SubTransactionTransformer
 deleteSubTransaction _ =
     Nothing
@@ -191,22 +198,22 @@ duplicateSubTransaction subTransactionId transaction =
                     }
 
 
-getLimbo : Transaction -> Amount
-getLimbo transaction =
+createNewSubTransaction : BalanceRef -> Amount -> TransactionTransformer
+createNewSubTransaction balanceRef amount transaction =
     let
-        sumAllAmounts =
-            transaction.subTransactions
-                |> List.map (\st -> st.amount * (getSign st.balanceRef))
-                |> List.sum
+        newSubTrans =
+            { id = transaction.nextId
+            , date = "2018-01-26"
+            , balanceRef = balanceRef
+            , comment = ""
+            , amount = amount
+            }
+
+        newNextId =
+            transaction.nextId + 1
     in
-        -1 * sumAllAmounts
-
-
-getSign : BalanceRef -> Float
-getSign balanceRef =
-    case balanceRef of
-        AccountRef _ ->
-            1
-
-        BucketRef _ ->
-            -1
+        Just
+            { transaction
+                | subTransactions = transaction.subTransactions ++ [ newSubTrans ]
+                , nextId = newNextId
+            }

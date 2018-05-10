@@ -3,34 +3,32 @@ module Model.Balance
         ( BalanceList
         , Account
         , AccountId
-        , BalanceId
         , BalanceRef(..)
         , Bucket
         , BucketId
         , newBalanceList
         , createNewAccount
         , createNewBucket
-        , getBalanceId
+        , amountChanged
         )
 
 
 type BalanceRef
     = AccountRef AccountId
     | BucketRef BucketId
+    | BufferRef
+    | NoBalanceRef
 
 
 type alias BalanceList =
     { accounts : List Account
     , buckets : List Bucket
+    , buffer : Float
     }
 
 
-type alias BalanceId =
-    Int
-
-
 type alias AccountId =
-    BalanceId
+    Int
 
 
 type alias Account =
@@ -41,7 +39,7 @@ type alias Account =
 
 
 type alias BucketId =
-    BalanceId
+    Int
 
 
 type alias Bucket =
@@ -52,20 +50,11 @@ type alias Bucket =
     }
 
 
-getBalanceId : BalanceRef -> BalanceId
-getBalanceId balanceRef =
-    case balanceRef of
-        AccountRef accountId ->
-            accountId
-
-        BucketRef bucketId ->
-            bucketId
-
-
 newBalanceList : BalanceList
 newBalanceList =
     { accounts = []
     , buckets = []
+    , buffer = 0
     }
 
 
@@ -73,7 +62,7 @@ createNewAccount : BalanceList -> BalanceList
 createNewAccount balanceList =
     let
         newId =
-            nextId balanceList
+            nextAccountId balanceList
 
         newAcc =
             newAccount newId
@@ -88,7 +77,7 @@ createNewBucket : BalanceList -> BalanceList
 createNewBucket balanceList =
     let
         newId =
-            nextId balanceList
+            nextAccountId balanceList
 
         newBuck =
             newBucket newId
@@ -116,17 +105,81 @@ newBucket bucketId =
     }
 
 
-nextId : BalanceList -> BalanceId
-nextId balanceList =
-    let
-        accountIds =
-            List.map .id balanceList.accounts
+nextAccountId : BalanceList -> AccountId
+nextAccountId balanceList =
+    List.map .id balanceList.accounts
+        |> List.maximum
+        |> Maybe.map ((+) 1)
+        |> Maybe.withDefault 0
 
-        bucketIds =
-            List.map .id balanceList.buckets
+
+nextBucketId : BalanceList -> BucketId
+nextBucketId balanceList =
+    List.map .id balanceList.buckets
+        |> List.maximum
+        |> Maybe.map ((+) 1)
+        |> Maybe.withDefault 0
+
+
+amountChanged : BalanceRef -> Float -> Float -> BalanceList -> BalanceList
+amountChanged balanceRef amountFrom amountTo balanceList =
+    case balanceRef of
+        AccountRef accountId ->
+            let
+                transformer =
+                    (\account ->
+                        { account | amount = account.amount - amountFrom + amountTo }
+                    )
+            in
+                updateAccount accountId transformer balanceList
+
+        BucketRef bucketId ->
+            let
+                transformer =
+                    (\bucket ->
+                        { bucket | amount = bucket.amount - amountFrom + amountTo }
+                    )
+            in
+                updateBucket bucketId transformer balanceList
+
+        BufferRef ->
+            let
+                newBuffer =
+                    balanceList.buffer - amountFrom + amountTo
+            in
+                { balanceList | buffer = newBuffer }
+
+        NoBalanceRef ->
+            balanceList
+
+
+updateAccount : AccountId -> (Account -> Account) -> BalanceList -> BalanceList
+updateAccount accountId transformer balanceList =
+    let
+        newAccounts =
+            balanceList.accounts
+                |> List.map
+                    (\a ->
+                        if a.id == accountId then
+                            transformer a
+                        else
+                            a
+                    )
     in
-        accountIds
-            ++ bucketIds
-            |> List.maximum
-            |> Maybe.map ((+) 1)
-            |> Maybe.withDefault 0
+        { balanceList | accounts = newAccounts }
+
+
+updateBucket : BucketId -> (Bucket -> Bucket) -> BalanceList -> BalanceList
+updateBucket bucketId transformer balanceList =
+    let
+        newBuckets =
+            balanceList.buckets
+                |> List.map
+                    (\a ->
+                        if a.id == bucketId then
+                            transformer a
+                        else
+                            a
+                    )
+    in
+        { balanceList | buckets = newBuckets }

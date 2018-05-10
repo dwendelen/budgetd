@@ -87,3 +87,8 @@ a.logout-link {
     border-bottom-style: solid;
     border-bottom-width: 1px;
 }
+
+.newStuff {
+    padding-top: 12pt;
+    padding-bottom: 12pt;
+}

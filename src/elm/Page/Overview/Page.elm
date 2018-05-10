@@ -4,7 +4,7 @@ import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (class, type_, value)
 import Html.Events exposing (onClick)
 import Model.Application exposing (Model)
-import Model.Balance exposing (Account, BalanceId, BalanceRef(AccountRef, BucketRef), Bucket)
+import Model.Balance exposing (Account, BalanceRef(..), Bucket)
 import Page.Overview.Model exposing (..)
 import View.RightClick exposing (onRightClick)
 
@@ -61,9 +61,9 @@ simpleRenderName balanceRef name =
 
 renderNewAccount : Html Msg
 renderNewAccount =
-    div [ class "alpha grid_8 omega", onClick NewAccount ] [ text "New Account" ]
+    div [ class "alpha grid_8 omega newStuff", onClick NewAccount ] [ text "New Account" ]
 
 
 renderNewBucket : Html Msg
 renderNewBucket =
-    div [ class "alpha grid_12 omega", onClick NewBucket ] [ text "New Bucket" ]
+    div [ class "alpha grid_12 omega newStuff", onClick NewBucket ] [ text "New Bucket" ]

@@ -5,7 +5,7 @@ module Page.Overview.Model
         , Msg(..)
         )
 
-import Model.Balance exposing (BalanceId, BalanceRef)
+import Model.Balance exposing (BalanceRef)
 
 
 type alias PageState =
