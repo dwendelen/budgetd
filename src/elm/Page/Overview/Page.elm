@@ -44,6 +44,7 @@ renderAccount editingBalanceRef model account =
         , div [ class "grid_4 currency omega" ] [ text <| toString (getAmount (AccountRef account.id) model.transactions) ]
         ]
 
+
 renderBucket : Maybe BalanceRef -> Model -> Bucket -> Html Msg
 renderBucket editingBalanceRef model bucket =
     div [ class "alpha grid_12 omega" ]
@@ -111,6 +112,7 @@ renderBucketLimbo bucketLimbo =
         [ div [ class "alpha grid_4" ] [ text "Limbo" ]
         , div [ class "grid_4 suffix_4 omega currency" ] [ text <| toString <| -1 * bucketLimbo ]
         ]
+
 
 renderBuffer : Model -> Html Msg
 renderBuffer model =

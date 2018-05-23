@@ -73,7 +73,8 @@ renderTransaction initialisedBalancesDropDown transactions topSubTransaction =
                         |> List.filter (\s -> s.transactionId == topSubTransaction.transactionId)
                         |> List.filter ((/=) topSubTransaction)
             in
-                topSubTransaction :: otherSubTransactions
+                topSubTransaction
+                    :: otherSubTransactions
                     |> List.concatMap (renderSubTransaction adaptedBalancesDropDown)
 
         limboTransaction =
@@ -83,7 +84,7 @@ renderTransaction initialisedBalancesDropDown transactions topSubTransaction =
             (subTransactions ++ limboTransaction)
 
 
-renderSubTransaction : AdaptedBalancesDropDown  -> SubTransaction -> List (Html Msg)
+renderSubTransaction : AdaptedBalancesDropDown -> SubTransaction -> List (Html Msg)
 renderSubTransaction balanceDropdown subTrans =
     [ input [ id <| renderId subTrans.id "date", class "alpha grid_4 niceInput", type_ "text", onInput (ChangeDate subTrans.id), value subTrans.date ] []
     , (balanceDropdown subTrans.id) subTrans.balanceRef
@@ -122,7 +123,7 @@ renderLimbo : InitialisedBalancesDropDown -> TransactionList -> TransactionId ->
 renderLimbo initialisedBalancesDropDown transactions tId =
     let
         limboAmount =
-            Model.Limbo.getTransactionLimbo  transactions tId
+            Model.Limbo.getTransactionLimbo transactions tId
 
         dropDown =
             initialisedBalancesDropDown (CreateSubTransactionFromLimbo tId)
@@ -132,7 +133,17 @@ renderLimbo initialisedBalancesDropDown transactions tId =
         else
             [ div [ class "alpha grid_4" ] [ text "..." ]
             , dropDown NoBalanceRef
-            , div [ class "grid_3 currency" ] [ if limboAmount > 0 then text <| toString limboAmount else text "..." ]
-            , div [ class "grid_3 currency" ] [ if limboAmount < 0 then text <| toString <| -1 * limboAmount else text "..."]
+            , div [ class "grid_3 currency" ]
+                [ if limboAmount > 0 then
+                    text <| toString limboAmount
+                  else
+                    text "..."
+                ]
+            , div [ class "grid_3 currency" ]
+                [ if limboAmount < 0 then
+                    text <| toString <| -1 * limboAmount
+                  else
+                    text "..."
+                ]
             , div [ class "prefix_2 grid_4 suffix_4 omega" ] [ text "..." ]
             ]

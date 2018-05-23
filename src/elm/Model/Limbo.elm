@@ -1,9 +1,8 @@
 module Model.Limbo
     exposing
-        (
-         getTransactionLimbo
-         , getAccountLimbo
-         , getBucketLimbo
+        ( getTransactionLimbo
+        , getAccountLimbo
+        , getBucketLimbo
         )
 
 import Dict
@@ -15,10 +14,12 @@ import Set
 getAccountLimbo : TransactionList -> Amount
 getAccountLimbo transactionList =
     let
-        sumAllAmounts = getAllTransactions transactionList
-            |> List.map (getTransactionLimbo transactionList)
-            |> List.filter ((<) 0) -- All Greater then 0, or 0 > x
-            |> List.sum
+        sumAllAmounts =
+            getAllTransactions transactionList
+                |> List.map (getTransactionLimbo transactionList)
+                |> List.filter ((<) 0)
+                -- All Greater then 0, or 0 > x
+                |> List.sum
     in
         sumAllAmounts
 
@@ -26,16 +27,18 @@ getAccountLimbo transactionList =
 getBucketLimbo : TransactionList -> Amount
 getBucketLimbo transactionList =
     let
-        sumAllAmounts = getAllTransactions transactionList
+        sumAllAmounts =
+            getAllTransactions transactionList
                 |> List.map (getTransactionLimbo transactionList)
-                |> List.filter ((>) 0) -- All Less then 0, or 0 < x
+                |> List.filter ((>) 0)
+                -- All Less then 0, or 0 < x
                 |> List.sum
     in
         sumAllAmounts
 
 
 getTransactionLimbo : TransactionList -> TransactionId -> Amount
-getTransactionLimbo transactionList tId  =
+getTransactionLimbo transactionList tId =
     let
         sumAllAmounts =
             transactionList.subTransactions

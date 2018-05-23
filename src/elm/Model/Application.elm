@@ -17,7 +17,7 @@ module Model.Application
         )
 
 import Model.Balance exposing (..)
-import Model.Limbo  exposing ( getTransactionLimbo)
+import Model.Limbo exposing (getTransactionLimbo)
 import Model.Transaction exposing (..)
 import Page.Overview.Model exposing (PageState, initialState)
 
@@ -58,14 +58,16 @@ openTransactionsOfBalance balanceRef model =
     { model | page = TransactionsBalance balanceRef }
 
 
-
 newTransaction : BalanceRef -> Model -> Model
 newTransaction balanceRef model =
     let
-        (transList1, subId) = createTransaction model.transactions
-        transList2 = updateBalance balanceRef subId transList1
+        ( transList1, subId ) =
+            createTransaction model.transactions
+
+        transList2 =
+            updateBalance balanceRef subId transList1
     in
-        {model | transactions = transList2}
+        { model | transactions = transList2 }
 
 
 changeDate : SubTransactionId -> Date -> Model -> Model
@@ -88,7 +90,6 @@ changeAmount sId newTransAmount model =
     { model | transactions = updateAmount newTransAmount sId model.transactions }
 
 
-
 deleteSubTransaction : SubTransactionId -> Model -> Model
 deleteSubTransaction sId model =
     { model | transactions = Model.Transaction.deleteSubTransaction sId model.transactions }
@@ -102,16 +103,17 @@ duplicateSubTransaction sId model =
 newSubTransaction : TransactionId -> BalanceRef -> Amount -> Model -> Model
 newSubTransaction tId balanceRef amount model =
     let
-        (trans1, sId) = createSubTransaction tId model.transactions
+        ( trans1, sId ) =
+            createSubTransaction tId model.transactions
 
-        newTrans = trans1
-            |> updateBalance balanceRef sId
-            |> updateAmount amount sId
+        newTrans =
+            trans1
+                |> updateBalance balanceRef sId
+                |> updateAmount amount sId
     in
-        { model | transactions = newTrans}
+        { model | transactions = newTrans }
 
 
 getTransactionLimbo : Model -> TransactionId -> Amount
 getTransactionLimbo model tId =
     Model.Limbo.getTransactionLimbo model.transactions tId
-

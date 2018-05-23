@@ -33,7 +33,8 @@ update msg model =
 
         CreateSubTransactionFromLimbo tId balanceRef ->
             let
-                amount = getTransactionLimbo model tId
+                amount =
+                    getTransactionLimbo model tId
             in
                 newSubTransaction tId balanceRef amount model
 
@@ -45,5 +46,6 @@ changeAmount_ subTransactionId amountAsString sign model =
     case String.toFloat <| String.trim <| amountAsString of
         Ok amount ->
             changeAmount subTransactionId (sign * amount) model
+
         _ ->
             model
