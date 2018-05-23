@@ -9,7 +9,6 @@ module Model.Balance
         , newBalanceList
         , createNewAccount
         , createNewBucket
-        , amountChanged
         )
 
 
@@ -34,7 +33,6 @@ type alias AccountId =
 type alias Account =
     { id : AccountId
     , name : String
-    , amount : Float
     }
 
 
@@ -45,7 +43,6 @@ type alias BucketId =
 type alias Bucket =
     { id : BucketId
     , name : String
-    , amount : Float
     , rate : Float
     }
 
@@ -77,7 +74,7 @@ createNewBucket : BalanceList -> BalanceList
 createNewBucket balanceList =
     let
         newId =
-            nextAccountId balanceList
+            nextBucketId balanceList
 
         newBuck =
             newBucket newId
@@ -92,7 +89,6 @@ newAccount : AccountId -> Account
 newAccount accountId =
     { id = accountId
     , name = "Account " ++ toString (accountId + 1)
-    , amount = 0
     }
 
 
@@ -100,7 +96,6 @@ newBucket : BucketId -> Bucket
 newBucket bucketId =
     { id = bucketId
     , name = "Bucket " ++ toString (bucketId + 1)
-    , amount = 0
     , rate = 0
     }
 
@@ -119,38 +114,6 @@ nextBucketId balanceList =
         |> List.maximum
         |> Maybe.map ((+) 1)
         |> Maybe.withDefault 0
-
-
-amountChanged : BalanceRef -> Float -> Float -> BalanceList -> BalanceList
-amountChanged balanceRef amountFrom amountTo balanceList =
-    case balanceRef of
-        AccountRef accountId ->
-            let
-                transformer =
-                    (\account ->
-                        { account | amount = account.amount - amountFrom + amountTo }
-                    )
-            in
-                updateAccount accountId transformer balanceList
-
-        BucketRef bucketId ->
-            let
-                transformer =
-                    (\bucket ->
-                        { bucket | amount = bucket.amount - amountFrom + amountTo }
-                    )
-            in
-                updateBucket bucketId transformer balanceList
-
-        BufferRef ->
-            let
-                newBuffer =
-                    balanceList.buffer - amountFrom + amountTo
-            in
-                { balanceList | buffer = newBuffer }
-
-        NoBalanceRef ->
-            balanceList
 
 
 updateAccount : AccountId -> (Account -> Account) -> BalanceList -> BalanceList

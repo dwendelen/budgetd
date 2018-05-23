@@ -1,11 +1,13 @@
 module Page.Transactions.Page exposing (page)
 
+import Dict
 import Html exposing (Html, div, input, text)
-import Html.Attributes exposing (class, type_, value)
+import Html.Attributes exposing (class, id, type_, value)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Model.Application exposing (Model, getTransactionLimbo)
 import Model.Balance exposing (BalanceRef(AccountRef, NoBalanceRef))
-import Model.Transaction exposing (Amount, Date, SubTransaction, SubTransactionId, Transaction, TransactionId)
+import Model.Limbo
+import Model.Transaction exposing (Amount, Date, SubTransaction, SubTransactionId, TransactionId, TransactionList)
 import Page.Transactions.Model exposing (..)
 import View.BalancesDropDown exposing (BalancesDropdown, renderBalancesDropdown)
 
@@ -28,10 +30,10 @@ page model balanceRef =
         balancesDropdown =
             renderBalancesDropdown model.balances
     in
-        div [ class "container_24" ] (renderTransactions balancesDropdown balanceRef model.transactions.transactions)
+        div [ class "container_24" ] (renderTransactions balancesDropdown balanceRef model.transactions)
 
 
-renderTransactions : InitialisedBalancesDropDown -> BalanceRef -> List Transaction -> List (Html Msg)
+renderTransactions : InitialisedBalancesDropDown -> BalanceRef -> TransactionList -> List (Html Msg)
 renderTransactions initialisedBalancesDropDown id transactions =
     let
         overview =
@@ -48,40 +50,54 @@ renderTransactions initialisedBalancesDropDown id transactions =
             ]
 
         items =
-            transactions
-                |> List.filter (\t -> List.any (\st -> st.balanceRef == id) t.subTransactions)
-                |> List.map (\t -> renderTransaction initialisedBalancesDropDown t)
+            transactions.subTransactions
+                |> Dict.values
+                |> List.filter (\sub -> sub.balanceRef == id)
+                |> List.sortBy .date
+                |> List.map (renderTransaction initialisedBalancesDropDown transactions)
     in
         overview :: newTransaction :: (header ++ items)
 
 
-renderTransaction : InitialisedBalancesDropDown -> Transaction -> Html Msg
-renderTransaction initialisedBalancesDropDown transaction =
+renderTransaction : InitialisedBalancesDropDown -> TransactionList -> SubTransaction -> Html Msg
+renderTransaction initialisedBalancesDropDown transactions topSubTransaction =
     let
         adaptedBalancesDropDown =
-            (\sId -> initialisedBalancesDropDown (ChangeBalance transaction.id sId))
+            (\sId -> initialisedBalancesDropDown (ChangeBalance sId))
 
         subTransactions =
-            transaction.subTransactions
-                |> List.concatMap (renderSubTransaction adaptedBalancesDropDown transaction.id)
+            let
+                otherSubTransactions =
+                    transactions.subTransactions
+                        |> Dict.values
+                        |> List.filter (\s -> s.transactionId == topSubTransaction.transactionId)
+                        |> List.filter ((/=) topSubTransaction)
+            in
+                topSubTransaction :: otherSubTransactions
+                    |> List.concatMap (renderSubTransaction adaptedBalancesDropDown)
 
         limboTransaction =
-            renderLimbo initialisedBalancesDropDown transaction
+            renderLimbo initialisedBalancesDropDown transactions topSubTransaction.transactionId
     in
         div [ class "alpha grid_24 transaction omega" ]
             (subTransactions ++ limboTransaction)
 
 
-renderSubTransaction : AdaptedBalancesDropDown -> TransactionId -> SubTransaction -> List (Html Msg)
-renderSubTransaction balanceDropdown transId subTrans =
-    [ input [ class "alpha grid_4 niceInput", type_ "text", onInput (ChangeDate transId subTrans.id), value subTrans.date ] []
+renderSubTransaction : AdaptedBalancesDropDown  -> SubTransaction -> List (Html Msg)
+renderSubTransaction balanceDropdown subTrans =
+    [ input [ id <| renderId subTrans.id "date", class "alpha grid_4 niceInput", type_ "text", onInput (ChangeDate subTrans.id), value subTrans.date ] []
     , (balanceDropdown subTrans.id) subTrans.balanceRef
-    , renderAmount (isAccount subTrans.balanceRef) subTrans.amount (ChangeAccountAmount transId subTrans.id)
-    , renderAmount (not <| isAccount subTrans.balanceRef) (-1 * subTrans.amount) (ChangeBucketAmount transId subTrans.id)
-    , input [ class "prefix_2 grid_4 niceInput", type_ "text", onInput (ChangeComment transId subTrans.id), value subTrans.comment ] []
-    , div [ class "grid_1 button", onClick (DeleteSubTransaction transId subTrans.id) ] [ text "-" ]
-    , div [ class "grid_1 button suffix_2 omega", onClick (DuplicateSubTransaction transId subTrans.id) ] [ text "+" ]
+    , renderAmount (isAccount subTrans.balanceRef) subTrans.amount (ChangeAccountAmount subTrans.id)
+    , renderAmount (not <| isAccount subTrans.balanceRef) (-1 * subTrans.amount) (ChangeBucketAmount subTrans.id)
+    , input [ class "prefix_2 grid_4 niceInput", type_ "text", onInput (ChangeComment subTrans.id), value subTrans.comment ] []
+    , div [ class "grid_1 button", onClick (DeleteSubTransaction subTrans.id) ] [ text "-" ]
+    , div [ class "grid_1 button suffix_2 omega", onClick (DuplicateSubTransaction subTrans.id) ] [ text "+" ]
     ]
+
+
+renderId : SubTransactionId -> String -> String
+renderId subTransactionId suffix =
+    toString subTransactionId ++ "_" ++ suffix
 
 
 renderAmount : Bool -> Amount -> (String -> Msg) -> Html Msg
@@ -102,21 +118,21 @@ isAccount reference =
             False
 
 
-renderLimbo : InitialisedBalancesDropDown -> Transaction -> List (Html Msg)
-renderLimbo initialisedBalancesDropDown transaction =
+renderLimbo : InitialisedBalancesDropDown -> TransactionList -> TransactionId -> List (Html Msg)
+renderLimbo initialisedBalancesDropDown transactions tId =
     let
         limboAmount =
-            getTransactionLimbo transaction
+            Model.Limbo.getTransactionLimbo  transactions tId
 
         dropDown =
-            initialisedBalancesDropDown (CreateSubTransactionFromLimbo transaction)
+            initialisedBalancesDropDown (CreateSubTransactionFromLimbo tId)
     in
         if limboAmount == 0 then
             []
         else
             [ div [ class "alpha grid_4" ] [ text "..." ]
             , dropDown NoBalanceRef
-            , div [ class "grid_3 currency" ] [ text "..." ]
-            , div [ class "grid_3 currency" ] [ text <| toString <| -1 * limboAmount ]
+            , div [ class "grid_3 currency" ] [ if limboAmount > 0 then text <| toString limboAmount else text "..." ]
+            , div [ class "grid_3 currency" ] [ if limboAmount < 0 then text <| toString <| -1 * limboAmount else text "..."]
             , div [ class "prefix_2 grid_4 suffix_4 omega" ] [ text "..." ]
             ]

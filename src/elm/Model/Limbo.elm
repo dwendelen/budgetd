@@ -1,64 +1,56 @@
 module Model.Limbo
     exposing
-        ( Limbo
-        , newLimbo
-        , getTransactionLimbo
-        , amountChanged
+        (
+         getTransactionLimbo
+         , getAccountLimbo
+         , getBucketLimbo
         )
 
-import Model.Balance exposing (BalanceRef)
-import Model.Transaction exposing (Amount, Transaction, TransactionId)
+import Dict
+import Model.Balance exposing (BalanceRef(..))
+import Model.Transaction exposing (Amount, SubTransaction, TransactionId, TransactionList)
+import Set
 
 
-type alias Limbo =
-    { accountLimbo : Float
-    , bucketLimbo : Float
-    }
-
-
-newLimbo : Limbo
-newLimbo =
-    { accountLimbo = 0
-    , bucketLimbo = 0
-    }
-
-
-amountChanged : Transaction -> Amount -> Amount -> Limbo -> Limbo
-amountChanged transaction amountFrom amountTo limbo =
+getAccountLimbo : TransactionList -> Amount
+getAccountLimbo transactionList =
     let
-        oldLimbo =
-            getTransactionLimbo transaction
-
-        newLimbo =
-            oldLimbo + amountFrom - amountTo
-
-        newAccountLimbo =
-            limbo.accountLimbo - (toAccountLimbo oldLimbo) + (toAccountLimbo newLimbo)
-
-        newBucketLimbo =
-            limbo.bucketLimbo - (toBucketLimbo oldLimbo) + (toBucketLimbo newLimbo)
+        sumAllAmounts = getAllTransactions transactionList
+            |> List.map (getTransactionLimbo transactionList)
+            |> List.filter ((<) 0) -- All Greater then 0, or 0 > x
+            |> List.sum
     in
-        { accountLimbo = newAccountLimbo
-        , bucketLimbo = newBucketLimbo
-        }
+        sumAllAmounts
 
 
-toAccountLimbo : Float -> Float
-toAccountLimbo limbo =
-    max 0 limbo
+getBucketLimbo : TransactionList -> Amount
+getBucketLimbo transactionList =
+    let
+        sumAllAmounts = getAllTransactions transactionList
+                |> List.map (getTransactionLimbo transactionList)
+                |> List.filter ((>) 0) -- All Less then 0, or 0 < x
+                |> List.sum
+    in
+        sumAllAmounts
 
 
-toBucketLimbo : Float -> Float
-toBucketLimbo limbo =
-    min 0 limbo
-
-
-getTransactionLimbo : Transaction -> Amount
-getTransactionLimbo transaction =
+getTransactionLimbo : TransactionList -> TransactionId -> Amount
+getTransactionLimbo transactionList tId  =
     let
         sumAllAmounts =
-            transaction.subTransactions
+            transactionList.subTransactions
+                |> Dict.values
+                |> List.filter (\s -> s.transactionId == tId)
                 |> List.map .amount
                 |> List.sum
     in
         -1 * sumAllAmounts
+
+
+getAllTransactions : TransactionList -> List TransactionId
+getAllTransactions transactions =
+    transactions.subTransactions
+        |> Dict.values
+        |> List.map .transactionId
+        |> Set.fromList
+        |> Set.toList

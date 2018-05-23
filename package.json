@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "webpack --mode=development",
-    "start": "webpack-dev-server --mode=development"
+    "start": "webpack-dev-server --mode=development",
+    "elm-format": "elm-format --yes src"
   },
   "author": "",
   "license": ""

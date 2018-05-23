@@ -6,48 +6,44 @@ import Page.Transactions.Model exposing (Msg(..))
 
 update : Msg -> Model -> Model
 update msg model =
-    case msg of
+    case Debug.log "msg" msg of
         NewTransaction parentId ->
             newTransaction parentId model
 
-        ChangeDate transactionId subTransactionId newDate ->
-            changeDate transactionId subTransactionId newDate model
+        ChangeDate subTransactionId newDate ->
+            changeDate subTransactionId newDate model
 
-        ChangeComment transactionId subTransactionId newComment ->
-            changeComment transactionId subTransactionId newComment model
+        ChangeComment subTransactionId newComment ->
+            changeComment subTransactionId newComment model
 
-        ChangeBalance transactionId subTransactionId newBalanceId ->
-            changeBalance transactionId subTransactionId newBalanceId model
-                |> Result.withDefault model
+        ChangeBalance subTransactionId newBalanceId ->
+            changeBalance subTransactionId newBalanceId model
 
-        ChangeAccountAmount transactionId subTransactionId amountAsString ->
-            changeAmount_ transactionId subTransactionId amountAsString 1.0 model
+        ChangeAccountAmount subTransactionId amountAsString ->
+            changeAmount_ subTransactionId amountAsString 1.0 model
 
-        ChangeBucketAmount transactionId subTransactionId amountAsString ->
-            changeAmount_ transactionId subTransactionId amountAsString -1.0 model
+        ChangeBucketAmount subTransactionId amountAsString ->
+            changeAmount_ subTransactionId amountAsString -1.0 model
 
-        DeleteSubTransaction transactionId subTransactionId ->
-            deleteSubTransaction transactionId subTransactionId model
+        DeleteSubTransaction subTransactionId ->
+            deleteSubTransaction subTransactionId model
 
-        DuplicateSubTransaction transactionId subTransactionId ->
-            duplicateSubTransaction transactionId subTransactionId model
+        DuplicateSubTransaction subTransactionId ->
+            duplicateSubTransaction subTransactionId model
 
-        CreateSubTransactionFromLimbo transaction balanceRef ->
+        CreateSubTransactionFromLimbo tId balanceRef ->
             let
-                amount =
-                    getTransactionLimbo transaction
+                amount = getTransactionLimbo model tId
             in
-                newSubTransaction transaction.id balanceRef amount model
+                newSubTransaction tId balanceRef amount model
 
         GoToOverview ->
             goToOverview model
 
 
-changeAmount_ transactionId subTransactionId amountAsString sign model =
-    case Debug.log "amount" (String.toFloat <| String.trim <| amountAsString) of
+changeAmount_ subTransactionId amountAsString sign model =
+    case String.toFloat <| String.trim <| amountAsString of
         Ok amount ->
-            changeAmount transactionId subTransactionId (sign * amount) model
-                |> Result.withDefault model
-
+            changeAmount subTransactionId (sign * amount) model
         _ ->
             model

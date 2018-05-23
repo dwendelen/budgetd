@@ -9,12 +9,12 @@ import Model.Transaction exposing (..)
 
 type Msg
     = NewTransaction BalanceRef
-    | ChangeDate TransactionId SubTransactionId Date
-    | ChangeComment TransactionId SubTransactionId Comment
-    | ChangeBalance TransactionId SubTransactionId BalanceRef
-    | ChangeAccountAmount TransactionId SubTransactionId String
-    | ChangeBucketAmount TransactionId SubTransactionId String
-    | DeleteSubTransaction TransactionId SubTransactionId
-    | DuplicateSubTransaction TransactionId SubTransactionId
-    | CreateSubTransactionFromLimbo Transaction BalanceRef
+    | ChangeDate SubTransactionId Date
+    | ChangeComment SubTransactionId Comment
+    | ChangeBalance SubTransactionId BalanceRef
+    | ChangeAccountAmount SubTransactionId String
+    | ChangeBucketAmount SubTransactionId String
+    | DeleteSubTransaction SubTransactionId
+    | DuplicateSubTransaction SubTransactionId
+    | CreateSubTransactionFromLimbo TransactionId BalanceRef
     | GoToOverview

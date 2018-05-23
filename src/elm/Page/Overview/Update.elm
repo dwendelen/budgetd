@@ -9,7 +9,8 @@ update : PageState -> Model -> Msg -> Model
 update state model msg =
     case msg of
         StartEditingBalanceName balanceId ->
-            { model | page = Overview { state | editing = Just balanceId } }
+            --{ model | page = Overview { state | editing = Just balanceId } }
+            model
 
         StopEditingBalanceName ->
             { model | page = Overview { state | editing = Nothing } }

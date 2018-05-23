@@ -1,39 +1,33 @@
 module Model.Transaction
     exposing
-        ( SubTransaction
+        ( TransactionList
+        , SubTransaction
         , SubTransactionId
+        , TransactionId
         , Date
         , Comment
         , Amount
-        , Transaction
-        , TransactionId
-        , TransactionList
-        , newTransactionList
-        , createNewTransaction
-        , updateTransactionList
-        , updateSubTransactions
+        , initialTransactionList
+        , createSubTransaction
+        , createTransaction
         , updateDate
         , updateComment
         , updateBalance
         , updateAmount
         , deleteSubTransaction
+        , getSubTransaction
         , duplicateSubTransaction
-        , createNewSubTransaction
+        , getAmount
         )
 
+import Dict exposing (Dict)
 import Model.Balance exposing (BalanceRef(..))
 
 
 type alias TransactionList =
-    { transactions : List Transaction
+    { subTransactions : Dict SubTransactionId SubTransaction
     , nextTransactionId : TransactionId
-    }
-
-
-type alias Transaction =
-    { id : TransactionId
-    , subTransactions : List SubTransaction
-    , nextId : TransactionId
+    , nextSubTransactionId : SubTransactionId
     }
 
 
@@ -43,6 +37,7 @@ type alias TransactionId =
 
 type alias SubTransaction =
     { id : SubTransactionId
+    , transactionId: TransactionId
     , date : Date
     , balanceRef : BalanceRef
     , comment : Comment
@@ -66,154 +61,111 @@ type alias SubTransactionId =
     Int
 
 
-newTransactionList : TransactionList
-newTransactionList =
-    { transactions = []
+initialTransactionList : TransactionList
+initialTransactionList =
+    { subTransactions = Dict.empty
+    , nextSubTransactionId = 0
     , nextTransactionId = 0
     }
 
-
-createNewTransaction : TransactionList -> BalanceRef -> TransactionList
-createNewTransaction transactionList parentId =
+createSubTransaction : TransactionId -> TransactionList -> (TransactionList, SubTransactionId)
+createSubTransaction transactionId transactionList =
     let
-        newTrans =
-            newTransaction parentId transactionList.nextTransactionId
-
-        newNextTransactionId =
-            transactionList.nextTransactionId + 1
+        newSubTrans =
+            initialSubTransaction transactionList.nextSubTransactionId transactionId
+        newTransactionList =
+            { transactionList
+                        | subTransactions = Dict.insert newSubTrans.id newSubTrans transactionList.subTransactions
+                        , nextSubTransactionId = transactionList.nextSubTransactionId + 1
+                    }
     in
-        { transactionList
-            | transactions = transactionList.transactions ++ [ newTrans ]
-            , nextTransactionId = newNextTransactionId
-        }
+        (newTransactionList, transactionList.nextSubTransactionId)
 
-
-newTransaction : BalanceRef -> TransactionId -> Transaction
-newTransaction idParent idNewTransaction =
-    { id = idNewTransaction
-    , subTransactions = [ newSubTransaction idParent ]
-    , nextId = 1
-    }
-
-
-newSubTransaction : BalanceRef -> SubTransaction
-newSubTransaction idParent =
-    { id = 0
+initialSubTransaction : SubTransactionId -> TransactionId -> SubTransaction
+initialSubTransaction subTransactionId transactionId =
+    { id = subTransactionId
+    , transactionId = transactionId
     , date = "2018-01-26"
-    , balanceRef = idParent
+    , balanceRef = NoBalanceRef
     , comment = ""
     , amount = 0
     }
 
-
-type alias TransactionTransformer =
-    Transaction -> Maybe Transaction
-
-
-updateTransactionList : TransactionId -> TransactionTransformer -> TransactionList -> TransactionList
-updateTransactionList transactionId transformer transactionList =
-    { transactionList
-        | transactions = List.filterMap (updateTransaction transactionId transformer) transactionList.transactions
-    }
-
-
-updateTransaction : TransactionId -> TransactionTransformer -> Transaction -> Maybe Transaction
-updateTransaction transactionId transformer transaction =
-    if transaction.id == transactionId then
-        transformer transaction
-    else
-        Just transaction
-
-
-type alias SubTransactionTransformer =
-    SubTransaction -> Maybe SubTransaction
-
-
-updateSubTransactions : SubTransactionId -> SubTransactionTransformer -> Transaction -> Maybe Transaction
-updateSubTransactions subTransactionId transformer transaction =
+createTransaction : TransactionList -> (TransactionList, SubTransactionId)
+createTransaction transactionList =
     let
-        newSubTransactions =
-            List.filterMap (updateSubTransaction subTransactionId transformer) transaction.subTransactions
+        (transactionListAfterNewSub, newSubId) =
+            createSubTransaction transactionList.nextTransactionId transactionList
+        newTransactionList =
+            { transactionListAfterNewSub
+                | nextTransactionId = transactionList.nextTransactionId + 1
+                }
     in
-        if List.isEmpty newSubTransactions then
-            Nothing
-        else
-            Just { transaction | subTransactions = newSubTransactions }
+        (newTransactionList, newSubId)
+
+updateDate : Date -> SubTransactionId -> TransactionList -> TransactionList
+updateDate newDate subId transactionList =
+    apply (\subTransaction ->  { subTransaction | date = newDate }) subId transactionList
 
 
-updateSubTransaction : SubTransactionId -> SubTransactionTransformer -> SubTransaction -> Maybe SubTransaction
-updateSubTransaction subTransactionId transformer subTransaction =
-    if subTransaction.id == subTransactionId then
-        transformer subTransaction
-    else
-        Just subTransaction
+updateComment : Comment -> SubTransactionId -> TransactionList -> TransactionList
+updateComment newComment subId transactionList =
+    apply (\subTransaction ->  { subTransaction | comment = newComment }) subId transactionList
 
 
-updateDate : Date -> SubTransactionTransformer
-updateDate newDate subTransaction =
-    Just { subTransaction | date = newDate }
+updateBalance : BalanceRef -> SubTransactionId -> TransactionList -> TransactionList
+updateBalance newBalanceRef subId transactionList =
+    apply (\subTransaction ->  { subTransaction | balanceRef = newBalanceRef }) subId transactionList
 
 
-updateComment : Comment -> SubTransactionTransformer
-updateComment newComment subTransaction =
-    Just { subTransaction | comment = newComment }
+updateAmount : Amount -> SubTransactionId -> TransactionList -> TransactionList
+updateAmount newAmount subId transactionList =
+    apply (\subTransaction -> { subTransaction | amount = newAmount }) subId transactionList
 
 
-updateBalance : BalanceRef -> SubTransactionTransformer
-updateBalance newBalanceRef subTransaction =
-    Just { subTransaction | balanceRef = newBalanceRef }
-
-
-updateAmount : Amount -> SubTransactionTransformer
-updateAmount newAmount subTransaction =
-    Just { subTransaction | amount = newAmount }
-
-
-deleteSubTransaction : SubTransactionTransformer
-deleteSubTransaction _ =
-    Nothing
-
-
-duplicateSubTransaction : SubTransactionId -> TransactionTransformer
-duplicateSubTransaction subTransactionId transaction =
+apply : (SubTransaction -> SubTransaction) -> SubTransactionId -> TransactionList -> TransactionList
+apply transformer sId transactionList =
     let
-        maybeNewSubTransaction =
-            transaction.subTransactions
-                |> List.filter (\s -> s.id == subTransactionId)
-                |> List.head
-                |> Maybe.map (\s -> { s | id = transaction.nextId })
-
-        newNextId =
-            transaction.nextId + 1
+        newList = transactionList.subTransactions
+            |> Dict.update sId (Maybe.map transformer)
     in
-        case maybeNewSubTransaction of
-            Nothing ->
-                Just transaction
-
-            Just newSubTransaction ->
-                Just
-                    { transaction
-                        | subTransactions = transaction.subTransactions ++ [ newSubTransaction ]
-                        , nextId = newNextId
-                    }
-
-
-createNewSubTransaction : BalanceRef -> Amount -> TransactionTransformer
-createNewSubTransaction balanceRef amount transaction =
-    let
-        newSubTrans =
-            { id = transaction.nextId
-            , date = "2018-01-26"
-            , balanceRef = balanceRef
-            , comment = ""
-            , amount = amount
+        { transactionList
+            | subTransactions = newList
             }
 
-        newNextId =
-            transaction.nextId + 1
+duplicateSubTransaction : SubTransactionId -> TransactionList -> TransactionList
+duplicateSubTransaction baseSubId transactionList =
+    getSubTransaction baseSubId transactionList
+        |> Maybe.map (\baseSub ->
+            let
+                newSub = {baseSub | id = transactionList.nextSubTransactionId}
+                newNextSubId = transactionList.nextSubTransactionId + 1
+            in
+                {transactionList
+                | nextSubTransactionId = newNextSubId
+                , subTransactions = Dict.insert newSub.id newSub transactionList.subTransactions
+                }
+        )
+        |> Maybe.withDefault transactionList
+
+deleteSubTransaction :  SubTransactionId -> TransactionList -> TransactionList
+deleteSubTransaction sId transactionList =
+    let
+        newList = transactionList.subTransactions
+            |> Dict.remove sId
     in
-        Just
-            { transaction
-                | subTransactions = transaction.subTransactions ++ [ newSubTrans ]
-                , nextId = newNextId
+        { transactionList
+            | subTransactions = newList
             }
+getSubTransaction : SubTransactionId -> TransactionList -> Maybe SubTransaction
+getSubTransaction sId transactionList =
+    transactionList.subTransactions
+        |> Dict.get sId
+
+getAmount: BalanceRef -> TransactionList -> Amount
+getAmount balanceRef transactions =
+    transactions.subTransactions
+        |> Dict.values
+        |> List.filter (\sub -> sub.balanceRef == balanceRef)
+        |> List.map .amount
+        |> List.sum

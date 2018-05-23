@@ -17,11 +17,7 @@ module Model.Application
         )
 
 import Model.Balance exposing (..)
-import Model.Limbo
-    exposing
-        ( Limbo
-        , getTransactionLimbo
-        )
+import Model.Limbo  exposing ( getTransactionLimbo)
 import Model.Transaction exposing (..)
 import Page.Overview.Model exposing (PageState, initialState)
 
@@ -30,7 +26,6 @@ type alias Model =
     { page : Page
     , balances : BalanceList
     , transactions : TransactionList
-    , limbo : Limbo
     }
 
 
@@ -44,8 +39,7 @@ initialModel : Model
 initialModel =
     { page = Overview initialState
     , balances = Model.Balance.newBalanceList
-    , transactions = Model.Transaction.newTransactionList
-    , limbo = Model.Limbo.newLimbo
+    , transactions = Model.Transaction.initialTransactionList
     }
 
 
@@ -64,123 +58,60 @@ openTransactionsOfBalance balanceRef model =
     { model | page = TransactionsBalance balanceRef }
 
 
+
 newTransaction : BalanceRef -> Model -> Model
-newTransaction parentId model =
-    { model | transactions = createNewTransaction model.transactions parentId }
+newTransaction balanceRef model =
+    let
+        (transList1, subId) = createTransaction model.transactions
+        transList2 = updateBalance balanceRef subId transList1
+    in
+        {model | transactions = transList2}
 
 
-changeDate : TransactionId -> SubTransactionId -> Date -> Model -> Model
-changeDate transactionId subTransactionId newDate model =
-    { model | transactions = updateTransactionList transactionId (updateSubTransactions subTransactionId (updateDate newDate)) model.transactions }
+changeDate : SubTransactionId -> Date -> Model -> Model
+changeDate sId newDate model =
+    { model | transactions = updateDate newDate sId model.transactions }
 
 
-changeComment : TransactionId -> SubTransactionId -> Comment -> Model -> Model
-changeComment transactionId subTransactionId newComment model =
-    { model | transactions = updateTransactionList transactionId (updateSubTransactions subTransactionId (updateComment newComment)) model.transactions }
+changeComment : SubTransactionId -> Comment -> Model -> Model
+changeComment sId newComment model =
+    { model | transactions = updateComment newComment sId model.transactions }
 
 
-changeBalance : TransactionId -> SubTransactionId -> BalanceRef -> Model -> Result String Model
-changeBalance transactionId subTransactionId newBalanceRef model =
-    getTransaction transactionId model
-        |> Result.andThen
-            (\transaction ->
-                getSubTransaction subTransactionId transaction
-                    |> Result.map
-                        (\subtransaction ->
-                            let
-                                oldBalance =
-                                    subtransaction.balanceRef
-
-                                amount =
-                                    subtransaction.amount
-
-                                newTransactions =
-                                    updateTransactionList transactionId (updateSubTransactions subTransactionId (updateBalance newBalanceRef)) model.transactions
-
-                                newBalances =
-                                    model.balances
-                                        |> Model.Balance.amountChanged oldBalance amount 0
-                                        |> Model.Balance.amountChanged newBalanceRef 0 amount
-                            in
-                                { model
-                                    | transactions = newTransactions
-                                    , balances = newBalances
-                                }
-                        )
-            )
+changeBalance : SubTransactionId -> BalanceRef -> Model -> Model
+changeBalance sId newBalanceRef model =
+    { model | transactions = updateBalance newBalanceRef sId model.transactions }
 
 
-changeAmount : TransactionId -> SubTransactionId -> Amount -> Model -> Result String Model
-changeAmount transactionId subTransactionId newTransAmount model =
-    getTransaction transactionId model
-        |> Result.andThen
-            (\transaction ->
-                getSubTransaction subTransactionId transaction
-                    |> Result.map
-                        (\subtransaction ->
-                            let
-                                oldTransAmount =
-                                    subtransaction.amount
-
-                                balanceRef =
-                                    subtransaction.balanceRef
-
-                                newTransactionList =
-                                    updateTransactionList transactionId (updateSubTransactions subTransactionId (updateAmount newTransAmount)) model.transactions
-
-                                newLimbo =
-                                    Model.Limbo.amountChanged transaction oldTransAmount newTransAmount model.limbo
-
-                                newBalances =
-                                    Model.Balance.amountChanged balanceRef oldTransAmount newTransAmount model.balances
-                            in
-                                { model
-                                    | transactions = newTransactionList
-                                    , balances = newBalances
-                                    , limbo = newLimbo
-                                }
-                        )
-            )
+changeAmount : SubTransactionId -> Amount -> Model -> Model
+changeAmount sId newTransAmount model =
+    { model | transactions = updateAmount newTransAmount sId model.transactions }
 
 
-deleteSubTransaction : TransactionId -> SubTransactionId -> Model -> Model
-deleteSubTransaction transactionId subTransactionId model =
-    { model | transactions = updateTransactionList transactionId (updateSubTransactions subTransactionId Model.Transaction.deleteSubTransaction) model.transactions }
+
+deleteSubTransaction : SubTransactionId -> Model -> Model
+deleteSubTransaction sId model =
+    { model | transactions = Model.Transaction.deleteSubTransaction sId model.transactions }
 
 
-duplicateSubTransaction : TransactionId -> SubTransactionId -> Model -> Model
-duplicateSubTransaction transactionId subTransactionId model =
-    { model | transactions = updateTransactionList transactionId (Model.Transaction.duplicateSubTransaction subTransactionId) model.transactions }
+duplicateSubTransaction : SubTransactionId -> Model -> Model
+duplicateSubTransaction sId model =
+    { model | transactions = Model.Transaction.duplicateSubTransaction sId model.transactions }
 
 
 newSubTransaction : TransactionId -> BalanceRef -> Amount -> Model -> Model
-newSubTransaction transactionId balanceRef amount model =
-    { model | transactions = updateTransactionList transactionId (Model.Transaction.createNewSubTransaction balanceRef amount) model.transactions }
-
-
-getTransactionLimbo : Transaction -> Amount
-getTransactionLimbo transaction =
-    Model.Limbo.getTransactionLimbo transaction
-
-
-getTransaction : TransactionId -> Model -> Result String Transaction
-getTransaction transId model =
+newSubTransaction tId balanceRef amount model =
     let
-        maybeTransaction =
-            model.transactions.transactions
-                |> List.filter (\t -> t.id == transId)
-                |> List.head
+        (trans1, sId) = createSubTransaction tId model.transactions
+
+        newTrans = trans1
+            |> updateBalance balanceRef sId
+            |> updateAmount amount sId
     in
-        Result.fromMaybe ("Could not find transaction " ++ toString transId) maybeTransaction
+        { model | transactions = newTrans}
 
 
-getSubTransaction : SubTransactionId -> Transaction -> Result String SubTransaction
-getSubTransaction subId transaction =
-    let
-        maybeTransaction =
-            transaction.subTransactions
-                |> List.filter (\t -> t.id == subId)
-                |> List.head
-    in
-        Result.fromMaybe ("Could not find subtransaction " ++ toString subId) maybeTransaction
+getTransactionLimbo : Model -> TransactionId -> Amount
+getTransactionLimbo model tId =
+    Model.Limbo.getTransactionLimbo model.transactions tId
 
