@@ -19,10 +19,11 @@
 module Page.Transactions.Update exposing (update)
 
 import Model.Application exposing (Model, changeAmount, changeBalance, changeComment, changeDate, deleteSubTransaction, duplicateSubTransaction, getTransactionLimbo, goToOverview, newSubTransaction, newTransaction)
+import Model.Transaction exposing (SubTransactionId)
 import Page.Transactions.Model exposing (Msg(..))
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd msg)
 update msg model =
     case Debug.log "msg" msg of
         NewTransaction parentId ->
@@ -57,13 +58,14 @@ update msg model =
                 newSubTransaction tId balanceRef amount model
 
         GoToOverview ->
-            goToOverview model
+            (goToOverview model, Cmd.none)
 
 
+changeAmount_ : SubTransactionId -> String -> Float -> Model -> (Model, Cmd msg)
 changeAmount_ subTransactionId amountAsString sign model =
     case String.toFloat <| String.trim <| amountAsString of
         Ok amount ->
             changeAmount subTransactionId (sign * amount) model
 
         _ ->
-            model
+            (model, Cmd.none)

@@ -37,15 +37,15 @@ interface Event
 data class CreateSubTransaction(
         val subTransactionId: Int,
         val transactionId: Int,
-        val date: LocalDateTime,
-        val balance: Int,
+        val date: String,
+        val balance: String,
         val comment: String,
         val amount: Double
 ): Event
 
 data class UpdateDate(
         val subTransactionId: Int,
-        val date: LocalDateTime
+        val date: String
 ): Event
 
 data class UpdateComment(
@@ -55,7 +55,7 @@ data class UpdateComment(
 
 data class UpdateBalance(
         val subTransactionId: Int,
-        val balance: Int
+        val balance: String
 ): Event
 
 data class UpdateAmount(

@@ -27,6 +27,8 @@ module Model.Balance
         , newBalanceList
         , createNewAccount
         , createNewBucket
+        , nextAccountId
+        , nextBucketId
         )
 
 
@@ -73,14 +75,11 @@ newBalanceList =
     }
 
 
-createNewAccount : BalanceList -> BalanceList
-createNewAccount balanceList =
+createNewAccount : AccountId -> String -> BalanceList -> BalanceList
+createNewAccount newId name balanceList =
     let
-        newId =
-            nextAccountId balanceList
-
         newAcc =
-            newAccount newId
+            newAccount newId name
 
         newAccs =
             balanceList.accounts ++ [ newAcc ]
@@ -88,14 +87,11 @@ createNewAccount balanceList =
         { balanceList | accounts = newAccs }
 
 
-createNewBucket : BalanceList -> BalanceList
-createNewBucket balanceList =
+createNewBucket : BucketId -> String -> BalanceList -> BalanceList
+createNewBucket newId name balanceList =
     let
-        newId =
-            nextBucketId balanceList
-
         newBuck =
-            newBucket newId
+            newBucket newId name
 
         newBucks =
             balanceList.buckets ++ [ newBuck ]
@@ -103,17 +99,17 @@ createNewBucket balanceList =
         { balanceList | buckets = newBucks }
 
 
-newAccount : AccountId -> Account
-newAccount accountId =
+newAccount : AccountId -> String -> Account
+newAccount accountId name =
     { id = accountId
-    , name = "Account " ++ toString (accountId + 1)
+    , name = name
     }
 
 
-newBucket : BucketId -> Bucket
-newBucket bucketId =
+newBucket : BucketId -> String -> Bucket
+newBucket bucketId name =
     { id = bucketId
-    , name = "Bucket " ++ toString (bucketId + 1)
+    , name = name
     , rate = 0
     }
 

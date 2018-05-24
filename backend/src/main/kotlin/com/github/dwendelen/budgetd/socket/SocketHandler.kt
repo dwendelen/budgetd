@@ -35,7 +35,9 @@ class SocketHandler(val eventStore: EventStore, val objectMapper: ObjectMapper) 
                         }
                         is StoreEvent -> {
                             eventStore.storeEvent(it.event)
-                                    .map { EventStored(it) }
+                                    .map {
+                                        EventStored(it)
+                                    }
                         }
                         else ->
                             Flux.empty()

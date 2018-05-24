@@ -18,26 +18,41 @@
 
 module Page.Overview.Update exposing (update)
 
-import Model.Application exposing (Model, Page(Overview), openTransactionsOfBalance)
-import Model.Balance exposing (createNewAccount, createNewBucket)
+import Model.Application exposing (Model, Page(Overview), createNewAccount, createNewBucket, openTransactionsOfBalance)
+import Model.Balance exposing (nextAccountId, nextBucketId)
 import Page.Overview.Model exposing (Msg(..), PageState)
 
 
-update : PageState -> Model -> Msg -> Model
+update : PageState -> Model -> Msg -> (Model, Cmd msg)
 update state model msg =
     case msg of
         StartEditingBalanceName balanceId ->
             --{ model | page = Overview { state | editing = Just balanceId } }
-            model
+            (model, Cmd.none)
 
         StopEditingBalanceName ->
-            { model | page = Overview { state | editing = Nothing } }
+            ({ model | page = Overview { state | editing = Nothing }}, Cmd.none)
 
         OpenTransactionsBalance balanceRef ->
-            openTransactionsOfBalance balanceRef model
+            (openTransactionsOfBalance balanceRef model, Cmd.none)
 
         NewAccount ->
-            { model | balances = createNewAccount model.balances }
+            let
+                newId =
+                    nextAccountId model.balances
+
+                name =
+                    "Account " ++ toString (newId + 1)
+            in
+                createNewAccount newId name model
 
         NewBucket ->
-            { model | balances = createNewBucket model.balances }
+            let
+                newId =
+                    nextBucketId model.balances
+
+                name =
+                    "Bucket " ++ toString (newId + 1)
+            in
+                    createNewBucket newId name model
+

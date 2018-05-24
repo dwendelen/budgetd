@@ -1,5 +1,6 @@
 {-
    Copyright 2018 Daan Wendelen
+   Copyright 2018 Cegeka NV
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ module View.BalancesDropDown
         ( BalancesDropdown
         , renderBalancesDropdown
         , stringToBalanceRef
+        , balanceRefToString
         )
 
 import Html exposing (Html, option, select, text)
@@ -101,6 +103,15 @@ stringToBalanceRef input =
 
         _ ->
             accountOrBucketToBalanceRef input
+
+
+balanceRefToString : BalanceRef -> String
+balanceRefToString balanceRef =
+    case balanceRef of
+        NoBalanceRef -> "limbo"
+        BufferRef -> "buffer"
+        AccountRef aId -> "a" ++ toString aId
+        BucketRef bId -> "b" ++ toString bId
 
 
 accountOrBucketToBalanceRef : String -> BalanceRef

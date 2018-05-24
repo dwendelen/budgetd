@@ -1,5 +1,6 @@
 {-
    Copyright 2018 Daan Wendelen
+   Copyright 2018 Cegeka NV
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +18,9 @@
 
 module Main exposing (..)
 
+import Date
 import Html exposing (Html, datalist, div, input, node, option, program, select, text)
+import ISO8601
 import Model.Application exposing (..)
 import Model.Socket
 import Page.Overview.Model
@@ -26,6 +29,7 @@ import Page.Overview.Update
 import Page.Transactions.Model
 import Page.Transactions.Page
 import Page.Transactions.Update
+import Time exposing (Time, second)
 
 
 main : Program Never Model Msg
@@ -34,7 +38,11 @@ main =
         { init = ( Model.Application.initialModel, Model.Application.initCmd )
         , view = view
         , update = update
-        , subscriptions = \_ -> Model.Application.subscriptions |> Sub.map SocketMsg
+        , subscriptions = \_ ->
+            Sub.batch
+                [ Model.Application.subscriptions |> Sub.map SocketMsg
+                , Time.every second NewTime
+                ]
         }
 
 
@@ -42,6 +50,7 @@ type Msg
     = TransactionMsg Page.Transactions.Model.Msg
     | OverviewPageMsg Page.Overview.Model.Msg
     | SocketMsg Model.Socket.Msg
+    | NewTime Time
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,7 +59,7 @@ update msg model =
         TransactionMsg transMsg ->
             case model.page of
                 TransactionsBalance _ ->
-                    ( Page.Transactions.Update.update transMsg model, Cmd.none )
+                    Page.Transactions.Update.update transMsg model
 
                 _ ->
                     ( model, Cmd.none )
@@ -58,7 +67,7 @@ update msg model =
         OverviewPageMsg overviewMsg ->
             case model.page of
                 Overview pageModel ->
-                    ( Page.Overview.Update.update pageModel model overviewMsg, Cmd.none )
+                    Page.Overview.Update.update pageModel model overviewMsg
 
                 _ ->
                     ( model, Cmd.none )
@@ -77,7 +86,8 @@ update msg model =
 
                     Nothing ->
                         ( model1, Cmd.none )
-
+        NewTime time ->
+            ({model | currentDate = timeToDateString time}, Cmd.none)
 
 view : Model -> Html Msg
 view model =
@@ -92,3 +102,9 @@ view model =
         TransactionsBalance balanceRef ->
             Page.Transactions.Page.page model balanceRef
                 |> Html.map TransactionMsg
+
+timeToDateString : Time -> String
+timeToDateString time =
+    ISO8601.fromTime time
+    |> ISO8601.toString
+    |> String.left 10

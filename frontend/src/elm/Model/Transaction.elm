@@ -27,6 +27,7 @@ module Model.Transaction
         , Amount
         , initialTransactionList
         , popNextTransactionId
+        , popNextSubTransactionId
         , createSubTransaction
         , updateDate
         , updateComment
@@ -108,6 +109,17 @@ initialSubTransaction subTransactionId data =
     , comment = data.comment
     , amount = data.amount
     }
+
+
+popNextSubTransactionId : TransactionList -> ( TransactionList, SubTransactionId )
+popNextSubTransactionId transactions =
+    let
+        nextTransactions =
+            { transactions
+                | nextSubTransactionId = transactions.nextSubTransactionId + 1
+            }
+    in
+        ( nextTransactions, transactions.nextSubTransactionId )
 
 
 popNextTransactionId : TransactionList -> ( TransactionList, TransactionId )
@@ -201,7 +213,8 @@ getAmount balanceRef transactions =
 
 
 type alias SubTransactionCreationData =
-    { transactionId : TransactionId
+    { subTransactionId : SubTransactionId
+    , transactionId : TransactionId
     , date : Date
     , balanceRef : BalanceRef
     , comment : Comment
