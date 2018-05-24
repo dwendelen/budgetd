@@ -338,7 +338,7 @@ createAccountDecoder =
         |> Json.Decode.map CreateAccountEvent
 
 
-changeRateDecoder: Decoder Event
+changeRateDecoder : Decoder Event
 changeRateDecoder =
     Json.Decode.map3
         ChangeRateEventData
@@ -440,10 +440,11 @@ eventToValue event =
                 , ( "accountId", Json.Encode.int createAccountEventData.accountId )
                 , ( "name", Json.Encode.string createAccountEventData.name )
                 ]
+
         ChangeRateEvent changeEventRateData ->
             Json.Encode.object
-                [ ("type", Json.Encode.string "CHANGE_RATE")
-                , ("bucketId", Json.Encode.int  changeEventRateData.bucketId)
-                , ("time", Json.Encode.string  changeEventRateData.time)
-                , ("rate", Json.Encode.float  changeEventRateData.rate)
+                [ ( "type", Json.Encode.string "CHANGE_RATE" )
+                , ( "bucketId", Json.Encode.int changeEventRateData.bucketId )
+                , ( "time", Json.Encode.string changeEventRateData.time )
+                , ( "rate", Json.Encode.float changeEventRateData.rate )
                 ]

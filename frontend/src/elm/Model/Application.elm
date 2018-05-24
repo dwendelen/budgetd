@@ -169,6 +169,7 @@ newTransaction balanceRef model =
 duplicateSubTransaction : SubTransactionId -> Model -> ( Model, Cmd msg )
 duplicateSubTransaction sId model =
     subTransactionToData sId model
+        |> Maybe.map (\data -> { data | subTransactionId = model.transactions.nextSubTransactionId })
         |> Maybe.map (\data -> createSubTransaction_ data model)
         |> Maybe.withDefault ( model, Cmd.none )
 
@@ -254,5 +255,6 @@ handleEvent event model =
 
         CreateAccountEvent createAccountEventData ->
             { model | balances = Model.Balance.createNewAccount createAccountEventData.accountId createAccountEventData.name model.balances }
+
         ChangeRateEvent changeEventRateData ->
             model

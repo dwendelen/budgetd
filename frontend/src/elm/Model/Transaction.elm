@@ -91,11 +91,12 @@ createSubTransaction data transactionList =
     let
         newSubTrans =
             initialSubTransaction data
+
         newNextSubTransactionId =
-            max (transactionList.nextSubTransactionId) ( data.subTransactionId + 1)
+            max (transactionList.nextSubTransactionId) (data.subTransactionId + 1)
+
         newNextTransactionId =
             max (transactionList.nextTransactionId) (data.transactionId + 1)
-
     in
         { transactionList
             | subTransactions = Dict.insert newSubTrans.id newSubTrans transactionList.subTransactions
@@ -113,6 +114,7 @@ initialSubTransaction data =
     , comment = data.comment
     , amount = data.amount
     }
+
 
 updateDate : Date -> SubTransactionId -> TransactionList -> TransactionList
 updateDate newDate subId transactionList =
