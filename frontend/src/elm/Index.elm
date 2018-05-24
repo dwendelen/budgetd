@@ -38,11 +38,12 @@ main =
         { init = ( Model.Application.initialModel, Model.Application.initCmd )
         , view = view
         , update = update
-        , subscriptions = \_ ->
-            Sub.batch
-                [ Model.Application.subscriptions |> Sub.map SocketMsg
-                , Time.every second NewTime
-                ]
+        , subscriptions =
+            \_ ->
+                Sub.batch
+                    [ Model.Application.subscriptions |> Sub.map SocketMsg
+                    , Time.every second NewTime
+                    ]
         }
 
 
@@ -86,8 +87,10 @@ update msg model =
 
                     Nothing ->
                         ( model1, Cmd.none )
+
         NewTime time ->
-            ({model | currentDate = timeToDateString time}, Cmd.none)
+            ( { model | currentDate = timeToDateString time }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -103,8 +106,9 @@ view model =
             Page.Transactions.Page.page model balanceRef
                 |> Html.map TransactionMsg
 
+
 timeToDateString : Time -> String
 timeToDateString time =
     ISO8601.fromTime time
-    |> ISO8601.toString
-    |> String.left 10
+        |> ISO8601.toString
+        |> String.left 10

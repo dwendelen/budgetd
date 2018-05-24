@@ -108,10 +108,17 @@ stringToBalanceRef input =
 balanceRefToString : BalanceRef -> String
 balanceRefToString balanceRef =
     case balanceRef of
-        NoBalanceRef -> "limbo"
-        BufferRef -> "buffer"
-        AccountRef aId -> "a" ++ toString aId
-        BucketRef bId -> "b" ++ toString bId
+        NoBalanceRef ->
+            "limbo"
+
+        BufferRef ->
+            "buffer"
+
+        AccountRef aId ->
+            "a" ++ toString aId
+
+        BucketRef bId ->
+            "b" ++ toString bId
 
 
 accountOrBucketToBalanceRef : String -> BalanceRef

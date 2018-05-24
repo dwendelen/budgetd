@@ -72,6 +72,7 @@ renderTransactions initialisedBalancesDropDown id transactions =
                 |> Dict.values
                 |> List.filter (\sub -> sub.balanceRef == id)
                 |> List.sortBy .date
+                |> List.reverse
                 |> List.map (renderTransaction initialisedBalancesDropDown transactions)
     in
         overview :: newTransaction :: (header ++ items)

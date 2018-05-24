@@ -29,7 +29,8 @@ import java.time.LocalDateTime
         JsonSubTypes.Type(value = UpdateAmount::class, name="UPDATE_AMOUNT"),
         JsonSubTypes.Type(value = DeleteSubTransaction::class, name="DELETE_SUB_TRANSACTION"),
         JsonSubTypes.Type(value = CreateBucket::class, name="CREATE_BUCKET"),
-        JsonSubTypes.Type(value = CreateAccount::class, name="CREATE_ACCOUNT")
+        JsonSubTypes.Type(value = CreateAccount::class, name="CREATE_ACCOUNT"),
+        JsonSubTypes.Type(value = ChangeRate::class, name="CHANGE_RATE")
 
 )
 interface Event
@@ -76,3 +77,9 @@ data class CreateAccount(
         val accountId: Int,
         val name: String
 ): Event
+
+data class ChangeRate(
+        val bucketId: Int,
+        val time: String,
+        val rate: Double
+) : Event

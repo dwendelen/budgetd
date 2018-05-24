@@ -29,7 +29,7 @@ module Model.Socket
 
 import Json.Decode exposing (Decoder, decodeString, field, float, int, string)
 import Json.Encode
-import Model.Balance exposing (BalanceRef)
+import Model.Balance exposing (BalanceRef, BucketId)
 import Model.Transaction exposing (Amount, Comment, Date, SubTransactionId)
 import View.BalancesDropDown exposing (balanceRefToString, stringToBalanceRef)
 import WebSocket
@@ -67,9 +67,11 @@ type SocketMessage
 type alias EventHappenedData =
     { idx : Int, event : Event }
 
-type alias StoreEvent=
-    {event : Event
+
+type alias StoreEvent =
+    { event : Event
     }
+
 
 type Event
     = CreateSubTransactionEvent CreateEventData
@@ -80,6 +82,7 @@ type Event
     | DeleteSubTransactionEvent SubTransactionId
     | CreateBucketEvent CreateBucketEventData
     | CreateAccountEvent CreateAccountEventData
+    | ChangeRateEvent ChangeRateEventData
 
 
 type alias CreateEventData =
@@ -128,6 +131,13 @@ type alias CreateAccountEventData =
     }
 
 
+type alias ChangeRateEventData =
+    { bucketId : BucketId
+    , time : String
+    , rate : Float
+    }
+
+
 url =
     "ws://localhost:8070/events"
 
@@ -166,8 +176,11 @@ handleSocketMessage maybeSocketMessage socket socketInfo =
 
         Just (EventStored newId) ->
             let
-                newSocketInfo = {socketInfo | lastId = max newId socketInfo.lastId}
-                newSocket = {socket  | status = Open newSocketInfo }
+                newSocketInfo =
+                    { socketInfo | lastId = max newId socketInfo.lastId }
+
+                newSocket =
+                    { socket | status = Open newSocketInfo }
             in
                 ( newSocket, Nothing )
 
@@ -247,6 +260,7 @@ eventDecoder =
         , createAccountDecoder
         , createBucketDecoder
         , deleteSubTransactionDecoder
+        , changeRateDecoder
         ]
 
 
@@ -324,6 +338,16 @@ createAccountDecoder =
         |> Json.Decode.map CreateAccountEvent
 
 
+changeRateDecoder: Decoder Event
+changeRateDecoder =
+    Json.Decode.map3
+        ChangeRateEventData
+        (field "bucketId" int)
+        (field "time" string)
+        (field "rate" float)
+        |> Json.Decode.map ChangeRateEvent
+
+
 balanceRefDecoder : Decoder BalanceRef
 balanceRefDecoder =
     Json.Decode.map
@@ -334,9 +358,14 @@ balanceRefDecoder =
 send : Event -> Socket -> ( Socket, Cmd msg )
 send event socket =
     let
-        storeEvent = StoreEvent event
-        json = storeEventToJson <| Debug.log "Sending Event" storeEvent
-        cmd = WebSocket.send url <| Debug.log "Json" json
+        storeEvent =
+            StoreEvent event
+
+        json =
+            storeEventToJson <| Debug.log "Sending Event" storeEvent
+
+        cmd =
+            WebSocket.send url <| Debug.log "Json" json
     in
         ( socket, cmd )
 
@@ -344,8 +373,8 @@ send event socket =
 storeEventToJson : StoreEvent -> String
 storeEventToJson storeEvent =
     Json.Encode.object
-        [ ("type", Json.Encode.string "STORE_EVENT" )
-        , ("event", eventToValue storeEvent.event)
+        [ ( "type", Json.Encode.string "STORE_EVENT" )
+        , ( "event", eventToValue storeEvent.event )
         ]
         |> Json.Encode.encode 0
 
@@ -353,56 +382,68 @@ storeEventToJson storeEvent =
 eventToValue : Event -> Json.Encode.Value
 eventToValue event =
     case event of
-       CreateSubTransactionEvent createEventData ->
+        CreateSubTransactionEvent createEventData ->
             Json.Encode.object
-                [ ("type", Json.Encode.string "CREATE_SUB_TRANSACTION")
-                , ("subTransactionid", Json.Encode.int createEventData.subTransactionId)
-                , ("transactionId", Json.Encode.int createEventData.transactionId)
-                , ("date", Json.Encode.string createEventData.date)
-                , ("balance", Json.Encode.string (balanceRefToString createEventData.balance))
-                , ("comment", Json.Encode.string createEventData.comment)
-                , ("amount", Json.Encode.float createEventData.amount)
+                [ ( "type", Json.Encode.string "CREATE_SUB_TRANSACTION" )
+                , ( "subTransactionId", Json.Encode.int createEventData.subTransactionId )
+                , ( "transactionId", Json.Encode.int createEventData.transactionId )
+                , ( "date", Json.Encode.string createEventData.date )
+                , ( "balance", Json.Encode.string (balanceRefToString createEventData.balance) )
+                , ( "comment", Json.Encode.string createEventData.comment )
+                , ( "amount", Json.Encode.float createEventData.amount )
                 ]
-       UpdateDateEvent dateEventData ->
-                Json.Encode.object
-                    [ ("type", Json.Encode.string "UPDATE_DATE")
-                    , ("subTransactionid", Json.Encode.int dateEventData.subTransactionId)
-                    , ("date", Json.Encode.string dateEventData.date)
-                    ]
-       UpdateCommentEvent commentEventData ->
-                    Json.Encode.object
-                        [ ("type", Json.Encode.string "UPDATE_COMMENT")
-                        , ("subTransactionid", Json.Encode.int commentEventData.subTransactionId)
-                        , ("comment", Json.Encode.string commentEventData.comment)
-                        ]
-       UpdateBalanceEvent balanceEventData ->
-                        Json.Encode.object
-                            [ ("type", Json.Encode.string "UPDATE_BALANCE")
-                            , ("subTransactionid", Json.Encode.int balanceEventData.subTransactionId)
-                            , ("balance", Json.Encode.string (balanceRefToString balanceEventData.balance))
-                            ]
-       UpdateAmountEvent amountEventData ->
-                      Json.Encode.object
-                          [ ("type", Json.Encode.string "UPDATE_AMOUNT")
-                          , ("subTransactionid", Json.Encode.int amountEventData.subTransactionId)
-                          , ("amount", Json.Encode.float amountEventData.amount)
-                          ]
-       DeleteSubTransactionEvent subTransactionId ->
-                           Json.Encode.object
-                               [ ("type", Json.Encode.string "DELETE_SUB_TRANSACTION")
-                               , ("subTransactionid", Json.Encode.int subTransactionId)
-                               ]
-       CreateBucketEvent createBucketEventData ->
-                                Json.Encode.object
-                                    [ ("type", Json.Encode.string "CREATE_BUCKET")
-                                    , ("bucketId", Json.Encode.int createBucketEventData.bucketId)
-                                    , ("name", Json.Encode.string createBucketEventData.name)
-                                    ]
-       CreateAccountEvent createAccountEventData ->
-                              Json.Encode.object
-                              [ ("type", Json.Encode.string "CREATE_ACCOUNT")
-                              , ("accountId", Json.Encode.int createAccountEventData.accountId)
-                              , ("name", Json.Encode.string createAccountEventData.name)
-                              ]
 
+        UpdateDateEvent dateEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "UPDATE_DATE" )
+                , ( "subTransactionId", Json.Encode.int dateEventData.subTransactionId )
+                , ( "date", Json.Encode.string dateEventData.date )
+                ]
 
+        UpdateCommentEvent commentEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "UPDATE_COMMENT" )
+                , ( "subTransactionId", Json.Encode.int commentEventData.subTransactionId )
+                , ( "comment", Json.Encode.string commentEventData.comment )
+                ]
+
+        UpdateBalanceEvent balanceEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "UPDATE_BALANCE" )
+                , ( "subTransactionId", Json.Encode.int balanceEventData.subTransactionId )
+                , ( "balance", Json.Encode.string (balanceRefToString balanceEventData.balance) )
+                ]
+
+        UpdateAmountEvent amountEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "UPDATE_AMOUNT" )
+                , ( "subTransactionId", Json.Encode.int amountEventData.subTransactionId )
+                , ( "amount", Json.Encode.float amountEventData.amount )
+                ]
+
+        DeleteSubTransactionEvent subTransactionId ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "DELETE_SUB_TRANSACTION" )
+                , ( "subTransactionId", Json.Encode.int subTransactionId )
+                ]
+
+        CreateBucketEvent createBucketEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "CREATE_BUCKET" )
+                , ( "bucketId", Json.Encode.int createBucketEventData.bucketId )
+                , ( "name", Json.Encode.string createBucketEventData.name )
+                ]
+
+        CreateAccountEvent createAccountEventData ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "CREATE_ACCOUNT" )
+                , ( "accountId", Json.Encode.int createAccountEventData.accountId )
+                , ( "name", Json.Encode.string createAccountEventData.name )
+                ]
+        ChangeRateEvent changeEventRateData ->
+            Json.Encode.object
+                [ ("type", Json.Encode.string "CHANGE_RATE")
+                , ("bucketId", Json.Encode.int  changeEventRateData.bucketId)
+                , ("time", Json.Encode.string  changeEventRateData.time)
+                , ("rate", Json.Encode.float  changeEventRateData.rate)
+                ]

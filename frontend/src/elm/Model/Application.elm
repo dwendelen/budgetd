@@ -96,49 +96,46 @@ openTransactionsOfBalance balanceRef model =
     { model | page = TransactionsBalance balanceRef }
 
 
-createNewAccount : AccountId -> String -> Model -> (Model, Cmd msg)
+createNewAccount : AccountId -> String -> Model -> ( Model, Cmd msg )
 createNewAccount aId name model =
-    executeEvent (CreateAccountEvent {accountId = aId, name = name}) model
+    executeEvent (CreateAccountEvent { accountId = aId, name = name }) model
 
-createNewBucket : BucketId -> String -> Model -> (Model, Cmd msg)
+
+createNewBucket : BucketId -> String -> Model -> ( Model, Cmd msg )
 createNewBucket bId name model =
-    executeEvent (CreateBucketEvent {bucketId = bId, name = name}) model
+    executeEvent (CreateBucketEvent { bucketId = bId, name = name }) model
 
-changeDate : SubTransactionId -> Date -> Model -> (Model, Cmd msg)
+
+changeDate : SubTransactionId -> Date -> Model -> ( Model, Cmd msg )
 changeDate sId newDate model =
-    executeEvent (UpdateDateEvent { subTransactionId = sId , date = newDate }) model
+    executeEvent (UpdateDateEvent { subTransactionId = sId, date = newDate }) model
 
 
-changeComment : SubTransactionId -> Comment -> Model -> (Model, Cmd msg)
+changeComment : SubTransactionId -> Comment -> Model -> ( Model, Cmd msg )
 changeComment sId newComment model =
-    executeEvent (UpdateCommentEvent { subTransactionId = sId , comment = newComment }) model
+    executeEvent (UpdateCommentEvent { subTransactionId = sId, comment = newComment }) model
 
 
-changeBalance : SubTransactionId -> BalanceRef -> Model -> (Model, Cmd msg)
+changeBalance : SubTransactionId -> BalanceRef -> Model -> ( Model, Cmd msg )
 changeBalance sId newBalanceRef model =
-    executeEvent (UpdateBalanceEvent { subTransactionId = sId , balance = newBalanceRef }) model
+    executeEvent (UpdateBalanceEvent { subTransactionId = sId, balance = newBalanceRef }) model
 
 
-changeAmount : SubTransactionId -> Amount -> Model -> (Model, Cmd msg)
+changeAmount : SubTransactionId -> Amount -> Model -> ( Model, Cmd msg )
 changeAmount sId newTransAmount model =
-    executeEvent (UpdateAmountEvent { subTransactionId = sId , amount = newTransAmount }) model
+    executeEvent (UpdateAmountEvent { subTransactionId = sId, amount = newTransAmount }) model
 
 
-deleteSubTransaction : SubTransactionId -> Model -> (Model, Cmd msg)
+deleteSubTransaction : SubTransactionId -> Model -> ( Model, Cmd msg )
 deleteSubTransaction sId model =
     executeEvent (DeleteSubTransactionEvent sId) model
 
-newSubTransaction : TransactionId -> BalanceRef -> Amount -> Model -> (Model, Cmd msg)
+
+newSubTransaction : TransactionId -> BalanceRef -> Amount -> Model -> ( Model, Cmd msg )
 newSubTransaction tId balanceRef amount model =
     let
-        ( transactions1, sId ) =
-            popNextSubTransactionId model.transactions
-
-        model1 =
-            { model | transactions = transactions1 }
-
         data =
-            { subTransactionId = sId
+            { subTransactionId = model.transactions.nextSubTransactionId
             , transactionId = tId
             , date = model.currentDate
             , balanceRef = balanceRef
@@ -146,7 +143,7 @@ newSubTransaction tId balanceRef amount model =
             , amount = amount
             }
     in
-        createSubTransaction_ data model1
+        createSubTransaction_ data model
 
 
 getTransactionLimbo : Model -> TransactionId -> Amount
@@ -154,48 +151,39 @@ getTransactionLimbo model tId =
     Model.Limbo.getTransactionLimbo model.transactions tId
 
 
-newTransaction : BalanceRef -> Model -> (Model, Cmd msg)
+newTransaction : BalanceRef -> Model -> ( Model, Cmd msg )
 newTransaction balanceRef model =
     let
-        ( transList1, tId ) =
-            popNextTransactionId model.transactions
-
-        ( transList2, sId ) =
-            popNextSubTransactionId transList1
-
-        model1 =
-            { model | transactions = transList2 }
-
         creationData =
-            { subTransactionId = sId
-            , transactionId = tId
+            { subTransactionId = model.transactions.nextSubTransactionId
+            , transactionId = model.transactions.nextTransactionId
             , date = model.currentDate
             , balanceRef = balanceRef
             , amount = 0
             , comment = ""
             }
     in
-        createSubTransaction_ creationData model1
+        createSubTransaction_ creationData model
 
 
-duplicateSubTransaction : SubTransactionId -> Model -> (Model, Cmd msg)
+duplicateSubTransaction : SubTransactionId -> Model -> ( Model, Cmd msg )
 duplicateSubTransaction sId model =
     subTransactionToData sId model
         |> Maybe.map (\data -> createSubTransaction_ data model)
-        |> Maybe.withDefault (model, Cmd.none)
+        |> Maybe.withDefault ( model, Cmd.none )
 
 
-createSubTransaction_ : SubTransactionCreationData -> Model -> (Model, Cmd msg)
+createSubTransaction_ : SubTransactionCreationData -> Model -> ( Model, Cmd msg )
 createSubTransaction_ data model =
     let
         eventData =
             { subTransactionId = data.subTransactionId
-                , transactionId = data.transactionId
-                , date = data.date
-                , balance = data.balanceRef
-                , comment = data.comment
-                , amount = data.amount
-                }
+            , transactionId = data.transactionId
+            , date = data.date
+            , balance = data.balanceRef
+            , comment = data.comment
+            , amount = data.amount
+            }
     in
         executeEvent (CreateSubTransactionEvent eventData) model
 
@@ -215,14 +203,20 @@ subTransactionToData sId model =
             )
 
 
-executeEvent : Event -> Model -> (Model, Cmd msg)
+executeEvent : Event -> Model -> ( Model, Cmd msg )
 executeEvent event model =
     let
-        (newSocket, cmd) = send event model.socket
-        model1 = {model | socket = newSocket}
-        model2 = handleEvent event model1
+        ( newSocket, cmd ) =
+            send event model.socket
+
+        model1 =
+            { model | socket = newSocket }
+
+        model2 =
+            handleEvent event model1
     in
-        (model2, cmd)
+        ( model2, cmd )
+
 
 handleEvent : Event -> Model -> Model
 handleEvent event model =
@@ -260,3 +254,5 @@ handleEvent event model =
 
         CreateAccountEvent createAccountEventData ->
             { model | balances = Model.Balance.createNewAccount createAccountEventData.accountId createAccountEventData.name model.balances }
+        ChangeRateEvent changeEventRateData ->
+            model

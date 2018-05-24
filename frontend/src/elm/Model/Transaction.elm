@@ -26,8 +26,6 @@ module Model.Transaction
         , Comment
         , Amount
         , initialTransactionList
-        , popNextTransactionId
-        , popNextSubTransactionId
         , createSubTransaction
         , updateDate
         , updateComment
@@ -92,46 +90,29 @@ createSubTransaction : SubTransactionCreationData -> TransactionList -> Transact
 createSubTransaction data transactionList =
     let
         newSubTrans =
-            initialSubTransaction transactionList.nextSubTransactionId data
+            initialSubTransaction data
+        newNextSubTransactionId =
+            max (transactionList.nextSubTransactionId) ( data.subTransactionId + 1)
+        newNextTransactionId =
+            max (transactionList.nextTransactionId) (data.transactionId + 1)
+
     in
         { transactionList
             | subTransactions = Dict.insert newSubTrans.id newSubTrans transactionList.subTransactions
-            , nextSubTransactionId = transactionList.nextSubTransactionId + 1
+            , nextSubTransactionId = newNextSubTransactionId
+            , nextTransactionId = newNextTransactionId
         }
 
 
-initialSubTransaction : SubTransactionId -> SubTransactionCreationData -> SubTransaction
-initialSubTransaction subTransactionId data =
-    { id = subTransactionId
+initialSubTransaction : SubTransactionCreationData -> SubTransaction
+initialSubTransaction data =
+    { id = data.subTransactionId
     , transactionId = data.transactionId
     , date = data.date
     , balanceRef = data.balanceRef
     , comment = data.comment
     , amount = data.amount
     }
-
-
-popNextSubTransactionId : TransactionList -> ( TransactionList, SubTransactionId )
-popNextSubTransactionId transactions =
-    let
-        nextTransactions =
-            { transactions
-                | nextSubTransactionId = transactions.nextSubTransactionId + 1
-            }
-    in
-        ( nextTransactions, transactions.nextSubTransactionId )
-
-
-popNextTransactionId : TransactionList -> ( TransactionList, TransactionId )
-popNextTransactionId transactions =
-    let
-        nextTransactions =
-            { transactions
-                | nextTransactionId = transactions.nextTransactionId + 1
-            }
-    in
-        ( nextTransactions, transactions.nextTransactionId )
-
 
 updateDate : Date -> SubTransactionId -> TransactionList -> TransactionList
 updateDate newDate subId transactionList =

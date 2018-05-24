@@ -23,18 +23,18 @@ import Model.Balance exposing (nextAccountId, nextBucketId)
 import Page.Overview.Model exposing (Msg(..), PageState)
 
 
-update : PageState -> Model -> Msg -> (Model, Cmd msg)
+update : PageState -> Model -> Msg -> ( Model, Cmd msg )
 update state model msg =
     case msg of
         StartEditingBalanceName balanceId ->
             --{ model | page = Overview { state | editing = Just balanceId } }
-            (model, Cmd.none)
+            ( model, Cmd.none )
 
         StopEditingBalanceName ->
-            ({ model | page = Overview { state | editing = Nothing }}, Cmd.none)
+            ( { model | page = Overview { state | editing = Nothing } }, Cmd.none )
 
         OpenTransactionsBalance balanceRef ->
-            (openTransactionsOfBalance balanceRef model, Cmd.none)
+            ( openTransactionsOfBalance balanceRef model, Cmd.none )
 
         NewAccount ->
             let
@@ -54,5 +54,4 @@ update state model msg =
                 name =
                     "Bucket " ++ toString (newId + 1)
             in
-                    createNewBucket newId name model
-
+                createNewBucket newId name model
