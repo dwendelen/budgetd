@@ -1,4 +1,4 @@
-module Page.Transactions.Model exposing ( Msg(..) )
+module Page.Transactions.Model exposing (Msg(..))
 
 import Model.Balance exposing (BalanceRef)
 import Model.Transaction exposing (..)

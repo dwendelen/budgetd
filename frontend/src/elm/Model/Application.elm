@@ -58,18 +58,6 @@ openTransactionsOfBalance balanceRef model =
     { model | page = TransactionsBalance balanceRef }
 
 
-newTransaction : BalanceRef -> Model -> Model
-newTransaction balanceRef model =
-    let
-        ( transList1, subId ) =
-            createTransaction model.transactions
-
-        transList2 =
-            updateBalance balanceRef subId transList1
-    in
-        { model | transactions = transList2 }
-
-
 changeDate : SubTransactionId -> Date -> Model -> Model
 changeDate sId newDate model =
     { model | transactions = updateDate newDate sId model.transactions }
@@ -95,25 +83,66 @@ deleteSubTransaction sId model =
     { model | transactions = Model.Transaction.deleteSubTransaction sId model.transactions }
 
 
-duplicateSubTransaction : SubTransactionId -> Model -> Model
-duplicateSubTransaction sId model =
-    { model | transactions = Model.Transaction.duplicateSubTransaction sId model.transactions }
-
-
 newSubTransaction : TransactionId -> BalanceRef -> Amount -> Model -> Model
 newSubTransaction tId balanceRef amount model =
     let
-        ( trans1, sId ) =
-            createSubTransaction tId model.transactions
-
-        newTrans =
-            trans1
-                |> updateBalance balanceRef sId
-                |> updateAmount amount sId
+        data =
+            { transactionId = tId
+            , date = "2018-05-01"
+            , balanceRef = balanceRef
+            , comment = ""
+            , amount = amount
+            }
     in
-        { model | transactions = newTrans }
+        createSubTransaction_ data model
 
 
 getTransactionLimbo : Model -> TransactionId -> Amount
 getTransactionLimbo model tId =
     Model.Limbo.getTransactionLimbo model.transactions tId
+
+
+newTransaction : BalanceRef -> Model -> Model
+newTransaction balanceRef model =
+    let
+        ( transList1, tId ) =
+            popNextTransactionId model.transactions
+
+        model1 = { model | transactions = transList1}
+
+        creationData =
+            { transactionId = tId
+            , date = "2018-05-01"
+            , balanceRef = balanceRef
+            , amount = 0
+            , comment = ""
+            }
+
+    in
+        createSubTransaction_ creationData model1
+
+
+duplicateSubTransaction : SubTransactionId -> Model -> Model
+duplicateSubTransaction sId model =
+    subTransactionToData sId model
+        |> Maybe.map (\data -> createSubTransaction_ data model)
+        |> Maybe.withDefault model
+
+
+createSubTransaction_ : SubTransactionCreationData -> Model -> Model
+createSubTransaction_ data model =
+    { model | transactions = createSubTransaction data model.transactions }
+
+
+subTransactionToData : SubTransactionId -> Model -> Maybe SubTransactionCreationData
+subTransactionToData sId model =
+    getSubTransaction sId model.transactions
+        |> Maybe.map
+            (\sub ->
+                { transactionId = sub.transactionId
+                , date = sub.date
+                , balanceRef = sub.balanceRef
+                , comment = sub.comment
+                , amount = sub.amount
+                }
+            )

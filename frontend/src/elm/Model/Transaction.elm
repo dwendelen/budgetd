@@ -8,16 +8,16 @@ module Model.Transaction
         , Comment
         , Amount
         , initialTransactionList
+        , popNextTransactionId
         , createSubTransaction
-        , createTransaction
         , updateDate
         , updateComment
         , updateBalance
         , updateAmount
         , deleteSubTransaction
         , getSubTransaction
-        , duplicateSubTransaction
         , getAmount
+        , SubTransactionCreationData
         )
 
 import Dict exposing (Dict)
@@ -69,44 +69,38 @@ initialTransactionList =
     }
 
 
-createSubTransaction : TransactionId -> TransactionList -> ( TransactionList, SubTransactionId )
-createSubTransaction transactionId transactionList =
+createSubTransaction : SubTransactionCreationData -> TransactionList -> TransactionList
+createSubTransaction data transactionList =
     let
         newSubTrans =
-            initialSubTransaction transactionList.nextSubTransactionId transactionId
-
-        newTransactionList =
-            { transactionList
-                | subTransactions = Dict.insert newSubTrans.id newSubTrans transactionList.subTransactions
-                , nextSubTransactionId = transactionList.nextSubTransactionId + 1
-            }
+            initialSubTransaction transactionList.nextSubTransactionId data
     in
-        ( newTransactionList, transactionList.nextSubTransactionId )
+        { transactionList
+            | subTransactions = Dict.insert newSubTrans.id newSubTrans transactionList.subTransactions
+            , nextSubTransactionId = transactionList.nextSubTransactionId + 1
+        }
 
 
-initialSubTransaction : SubTransactionId -> TransactionId -> SubTransaction
-initialSubTransaction subTransactionId transactionId =
+initialSubTransaction : SubTransactionId -> SubTransactionCreationData -> SubTransaction
+initialSubTransaction subTransactionId data =
     { id = subTransactionId
-    , transactionId = transactionId
-    , date = "2018-01-26"
-    , balanceRef = NoBalanceRef
-    , comment = ""
-    , amount = 0
+    , transactionId = data.transactionId
+    , date = data.date
+    , balanceRef = data.balanceRef
+    , comment = data.comment
+    , amount = data.amount
     }
 
 
-createTransaction : TransactionList -> ( TransactionList, SubTransactionId )
-createTransaction transactionList =
+popNextTransactionId : TransactionList -> ( TransactionList, TransactionId )
+popNextTransactionId transactions =
     let
-        ( transactionListAfterNewSub, newSubId ) =
-            createSubTransaction transactionList.nextTransactionId transactionList
-
-        newTransactionList =
-            { transactionListAfterNewSub
-                | nextTransactionId = transactionList.nextTransactionId + 1
+        nextTransactions =
+            { transactions
+                | nextTransactionId = transactions.nextTransactionId + 1
             }
     in
-        ( newTransactionList, newSubId )
+        ( nextTransactions, transactions.nextTransactionId )
 
 
 updateDate : Date -> SubTransactionId -> TransactionList -> TransactionList
@@ -186,3 +180,12 @@ getAmount balanceRef transactions =
         |> List.filter (\sub -> sub.balanceRef == balanceRef)
         |> List.map .amount
         |> List.sum
+
+
+type alias SubTransactionCreationData =
+    { transactionId : TransactionId
+    , date : Date
+    , balanceRef : BalanceRef
+    , comment : Comment
+    , amount : Amount
+    }
