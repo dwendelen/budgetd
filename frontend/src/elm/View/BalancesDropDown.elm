@@ -19,6 +19,7 @@ module View.BalancesDropDown
     exposing
         ( BalancesDropdown
         , renderBalancesDropdown
+        , stringToBalanceRef
         )
 
 import Html exposing (Html, option, select, text)

@@ -21,6 +21,8 @@ module Model.Application
         ( Model
         , Page(..)
         , initialModel
+        , initCmd
+        , subscriptions
         , goToOverview
         , openTransactionsOfBalance
         , newTransaction
@@ -32,10 +34,12 @@ module Model.Application
         , duplicateSubTransaction
         , newSubTransaction
         , getTransactionLimbo
+        , handleEvent
         )
 
 import Model.Balance exposing (..)
 import Model.Limbo exposing (getTransactionLimbo)
+import Model.Socket exposing (Event(..), Socket, initialMessage)
 import Model.Transaction exposing (..)
 import Page.Overview.Model exposing (PageState, initialState)
 
@@ -44,6 +48,7 @@ type alias Model =
     { page : Page
     , balances : BalanceList
     , transactions : TransactionList
+    , socket : Socket
     }
 
 
@@ -53,12 +58,23 @@ type Page
     | Error String
 
 
+initCmd : Cmd msg
+initCmd =
+    initialMessage
+
+
 initialModel : Model
 initialModel =
     { page = Overview initialState
     , balances = Model.Balance.newBalanceList
     , transactions = Model.Transaction.initialTransactionList
+    , socket = Model.Socket.initialSocket
     }
+
+
+subscriptions : Sub Model.Socket.Msg
+subscriptions =
+    Model.Socket.subscriptions
 
 
 goToOverview : Model -> Model
@@ -164,3 +180,44 @@ subTransactionToData sId model =
                 , amount = sub.amount
                 }
             )
+
+
+handleEvent : Event -> Model -> Model
+handleEvent event model =
+    case Debug.log "event" event of
+        --TODO FIXED ID
+        CreateSubTransactionEvent createData ->
+            let
+                data =
+                    { transactionId = createData.transactionId
+                    , date = createData.date
+                    , balanceRef = createData.balance
+                    , comment = createData.comment
+                    , amount = createData.amount
+                    }
+            in
+                createSubTransaction_ data model
+
+        UpdateDateEvent dateEventData ->
+            changeDate dateEventData.subTransactionId dateEventData.date model
+
+        UpdateCommentEvent commentEventData ->
+            changeComment commentEventData.subTransactionId commentEventData.comment model
+
+
+        UpdateBalanceEvent balanceEventData ->
+            changeBalance balanceEventData.subTransactionId balanceEventData.balance model
+
+        UpdateAmountEvent amountEventData ->
+            changeAmount amountEventData.subTransactionId amountEventData.amount model
+
+        DeleteSubTransactionEvent sId ->
+            deleteSubTransaction sId model
+
+        --TODO FIXED ID
+        CreateBucketEvent createBucketEventData ->
+            {model | balances = createNewBucket model.balances}
+
+        --TODO FIXED ID
+        CreateAccountEvent createAccountEventData ->
+            {model | balances = createNewAccount model.balances}

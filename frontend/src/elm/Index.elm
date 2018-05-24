@@ -19,6 +19,7 @@ module Main exposing (..)
 
 import Html exposing (Html, datalist, div, input, node, option, program, select, text)
 import Model.Application exposing (..)
+import Model.Socket
 import Page.Overview.Model
 import Page.Overview.Page
 import Page.Overview.Update
@@ -30,16 +31,17 @@ import Page.Transactions.Update
 main : Program Never Model Msg
 main =
     program
-        { init = ( Model.Application.initialModel, Cmd.none )
+        { init = ( Model.Application.initialModel, Model.Application.initCmd )
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = \_ -> Model.Application.subscriptions |> Sub.map SocketMsg
         }
 
 
 type Msg
     = TransactionMsg Page.Transactions.Model.Msg
     | OverviewPageMsg Page.Overview.Model.Msg
+    | SocketMsg Model.Socket.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -60,6 +62,21 @@ update msg model =
 
                 _ ->
                     ( model, Cmd.none )
+
+        SocketMsg socketMsg ->
+            let
+                ( newSocket, maybeEvent ) =
+                    Model.Socket.handle socketMsg model.socket
+
+                model1 =
+                    { model | socket = newSocket }
+            in
+                case maybeEvent of
+                    Just event ->
+                        ( Model.Application.handleEvent event model1, Cmd.none )
+
+                    Nothing ->
+                        ( model1, Cmd.none )
 
 
 view : Model -> Html Msg
