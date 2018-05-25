@@ -44,6 +44,7 @@ import Model.Limbo exposing (getTransactionLimbo)
 import Model.Socket exposing (Event(..), Socket, initialMessage, send)
 import Model.Transaction exposing (..)
 import Page.Overview.Model exposing (PageState, initialState)
+import Time exposing (Time)
 
 
 type alias Model =
@@ -52,6 +53,7 @@ type alias Model =
     , transactions : TransactionList
     , socket : Socket
     , currentDate : String
+    , currentTime : Time
     }
 
 
@@ -73,6 +75,7 @@ initialModel =
     , transactions = Model.Transaction.initialTransactionList
     , socket = Model.Socket.initialSocket
     , currentDate = "0000-00-00"
+    , currentTime = 0
     }
 
 

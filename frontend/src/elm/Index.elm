@@ -89,7 +89,7 @@ update msg model =
                         ( model1, Cmd.none )
 
         NewTime time ->
-            ( { model | currentDate = timeToDateString time }, Cmd.none )
+            ( { model | currentDate = timeToDateString time , currentTime = time }, Cmd.none )
 
 
 view : Model -> Html Msg

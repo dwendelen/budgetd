@@ -20,7 +20,7 @@ import Html exposing (Html, div, input, text)
 import Html.Attributes exposing (class, id, type_, value)
 import Html.Events exposing (onClick)
 import Model.Application exposing (Model)
-import Model.Balance exposing (Account, BalanceRef(..), Bucket)
+import Model.Balance exposing (Account, BalanceRef(..), Bucket, getBufferLostValue, leakedInBucket)
 import Model.Limbo exposing (getAccountLimbo, getBucketLimbo)
 import Model.Transaction exposing (getAmount)
 import Page.Overview.Model exposing (..)
@@ -65,10 +65,18 @@ renderBucket : Maybe BalanceRef -> Model -> Bucket -> Html Msg
 renderBucket editingBalanceRef model bucket =
     div [ class "alpha grid_12 omega" ]
         [ renderName (BucketRef bucket.id) bucket.name editingBalanceRef
-        , div [ class "grid_4 currency" ] [ text <| toString <| -1 * (getAmount (BucketRef bucket.id) model.transactions) ]
+        , div [ class "grid_4 currency" ] [ text <| toString <| getBucketAmount bucket model ]
         , div [ class "grid_4 currency omega" ] [ text <| toString bucket.rate ]
         ]
 
+getBucketAmount bucket model =
+    let
+        fromTransactions =
+            -1 * (getAmount (BucketRef bucket.id) model.transactions)
+        fromLeaking =
+            leakedInBucket model.currentTime bucket
+    in
+        fromTransactions + fromLeaking
 
 renderName : BalanceRef -> String -> Maybe BalanceRef -> Html Msg
 renderName balanceRef name editingBalanceRef =
@@ -134,5 +142,15 @@ renderBuffer : Model -> Html Msg
 renderBuffer model =
     div [ class "alpha grid_12 omega" ]
         [ div [ class "alpha grid_4", onClick (OpenTransactionsBalance BufferRef) ] [ text "Buffer" ]
-        , div [ class "grid_4 currency suffix_4 omega" ] [ text <| toString <| -1 * (getAmount BufferRef model.transactions) ]
+        , div [ class "grid_4 currency suffix_4 omega" ] [ text <| toString <| getBufferAmount model ]
         ]
+
+getBufferAmount : Model -> Float
+getBufferAmount model =
+    let
+        fromTransactions =
+            -1 * (getAmount BufferRef model.transactions)
+        fromLeakage =
+             Debug.log "leak" <| getBufferLostValue model.balances model.currentTime
+    in
+        fromTransactions + fromLeakage

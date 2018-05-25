@@ -29,7 +29,13 @@ module Model.Balance
         , createNewBucket
         , nextAccountId
         , nextBucketId
+        , getBufferLostValue
+        , leakedInBucket
         )
+
+
+import ISO8601
+import Time exposing (Time)
 
 
 type BalanceRef
@@ -64,6 +70,8 @@ type alias Bucket =
     { id : BucketId
     , name : String
     , rate : Float
+    , time : Time
+    , baseValue : Float
     }
 
 
@@ -110,7 +118,9 @@ newBucket : BucketId -> String -> Bucket
 newBucket bucketId name =
     { id = bucketId
     , name = name
-    , rate = 0
+    , rate = nbOfSecondsPerMonth * 0.1 --TODO
+    , time = 1527171769588 --TODO
+    , baseValue = 0
     }
 
 
@@ -130,22 +140,6 @@ nextBucketId balanceList =
         |> Maybe.withDefault 0
 
 
-updateAccount : AccountId -> (Account -> Account) -> BalanceList -> BalanceList
-updateAccount accountId transformer balanceList =
-    let
-        newAccounts =
-            balanceList.accounts
-                |> List.map
-                    (\a ->
-                        if a.id == accountId then
-                            transformer a
-                        else
-                            a
-                    )
-    in
-        { balanceList | accounts = newAccounts }
-
-
 updateBucket : BucketId -> (Bucket -> Bucket) -> BalanceList -> BalanceList
 updateBucket bucketId transformer balanceList =
     let
@@ -160,3 +154,23 @@ updateBucket bucketId transformer balanceList =
                     )
     in
         { balanceList | buckets = newBuckets }
+
+nbOfSecondsPerMonth = 2628000
+
+
+getBufferLostValue : BalanceList -> Time -> Float
+getBufferLostValue balances time =
+    let
+        totalLeakage = balances.buckets
+            |> List.map (leakedInBucket time)
+            |> List.sum
+    in
+        -1 * totalLeakage
+
+
+leakedInBucket : Time -> Bucket -> Float
+leakedInBucket time bucket  =
+    let
+        delta = (time - bucket.time) / 1000 * bucket.rate / nbOfSecondsPerMonth
+    in
+        bucket.baseValue + delta
